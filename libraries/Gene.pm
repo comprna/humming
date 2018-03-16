@@ -14,8 +14,9 @@ my $verbose2 = 0;
 # input:
 #     a pointer to a list of transcripts that overlap in extent: $loci
 #     the index position of the start and end coordinate of each transcript: $s, $e
+
 sub build_genes{
-    my ($loci, $s, $e) = @_;
+    my ($transcripts) = @_;
     
     # use flag to run Depth First afterwards
     my $color; 
@@ -24,11 +25,10 @@ sub build_genes{
     my $locus_clusters;
 
     # sort loci by the number of exons in desceding order
-    #my @sorted_loci = sort { scalar(get_all_Exons($b)) <=> scalar(get_all_Exons($a)) } @$loci;
-    my @sorted_loci = sort { $a->[$s] <=> $b->[$s] } @$loci;
+    my @sorted_transcripts = sort { transcript_start($a) <=> transcript_end($b) } @$transcripts;
     
     if ($verbose2){
-	foreach my $t (@sorted_loci){
+	foreach my $t (@sorted_transcripts){
 	    print_Transcript($t);
 	}
     }
@@ -36,16 +36,16 @@ sub build_genes{
     # clusters transcripts by whether or not any exon overlaps with an exon in                                                     
     # another transcript        
     my %id_to_object;
-    foreach my $tran (@sorted_loci) {
+    foreach my $tran (@sorted_transcripts) {
         $color->{$tran} = 1;
-	$id_to_object{$tran->[4]} = $tran;
+	$id_to_object{$tran} = $tran;
     }
     # build adjacency list:
     my $adj_list;
   TRAN1:
-    foreach my $tran1 (@sorted_loci) {
+    foreach my $tran1 (@sorted_transcripts) {
       TRAN2:
-        foreach my $tran2 (@sorted_loci) {
+        foreach my $tran2 (@sorted_transcripts) {
             next if ($tran1 == $tran2);
 	    if (test_exon_overlap($tran1, $tran2) ){
 		if ($verbose2){
@@ -60,7 +60,7 @@ sub build_genes{
     # Now do depth first to reconstruct the connected components                                                                             
     # using the adjacency lists:                                                                                                                 
     my @tran_clusters;
-    foreach my $tran (@sorted_loci){
+    foreach my $tran (@sorted_transcripts){
 	if ( $color->{$tran} == 1 ){
 	    my $nodes = depth_first_nonrecursive($adj_list, $tran, $color);
 	    my @ids = keys %{$nodes};
@@ -91,7 +91,7 @@ sub depth_first_nonrecursive{
 	my $this_tran = pop @s;
 	if ($color->{$this_tran} == 1 ){
 	    $color->{$this_tran} = 2;
-	    $nodes{$this_tran->[5]}++;
+	    $nodes{$this_tran}++;
 	    foreach my $other_tran ( @{$adj_list->{$this_tran}} ){
 		push( @s, $other_tran);
 	    }
@@ -131,94 +131,24 @@ sub test_exon_overlap{
 }
 
 
-###########################################
-# function to get all exons from a transcript
-sub get_all_Exons{
-    my ($trans) = @_;
-    #my $trans = [$chr, $t_start, $t_end, $strand, $coords, $feature_id, $gene_symbol];
-    my ($chr, $t_start, $t_end, $strand, $coords, $trans_id, $gene_symbol) = @$trans;
-    my @exon_ranges = split ",", $coords;
-    my @exons;
-    foreach my $range (@exon_ranges){
-        my ($start, $end) = split "-", $range;
-	push( @exons, [$chr, $start, $end, $strand, $trans_id, $gene_symbol] );
-    }
-    return @exons;
+sub get_exons{
+    my ($t) = @_;
+    return sort {$a->[1] <=> $b->[1]} @{$t};
+}
+
+sub transcript_start{
+    my ($t) = @_;
+    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
+    return $e[0]->[1];
+}
+
+sub transcript_end{
+    my ($t) = @_;
+    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
+    return $e[-1]->[2];
 }
 
 
-#########################
-
-sub build_genes_sequential{
-    my ($loci, $s, $e) = @_;
-    
-    # we generate cluster of loci                                                                                                                            
-    my $locus_clusters;
-
-    # sort loci by the number of exons in desceding order
-    #my @sorted_loci = sort { scalar(get_all_Exons($b)) <=> scalar(get_all_Exons($a)) } @$loci;
-    my @sorted_loci = sort { $a->[6] cmp $b->[6] } @$loci;
-
-    if ($verbose){
-	foreach my $t (@sorted_loci){
-	    print_Transcript($t);
-	}
-    }
-    # start and end coordinates of the clusters                                                                                                            
-    my @cluster_exons;
-
-    # Create the first locus_cluster with the first locus                                                                                                    
-    my @locus_clusters;
-    #push( @$locus_clusters, $locus_cluster);
-
-    # we go over all of them in sorted order (from left to right)                                                                                            
-    my $cluster_count = 0;
-    my $count = 0;
-
-  LOCUS:
-    foreach my $locus ( @sorted_loci ){
-        if ($count == 0){
-            # Create the first locus_cluster with the first locus                                                                                            
-            push( @{$locus_clusters[0]}, $locus);
-            my @these_exons = get_all_Exons($locus);
-            push( @{$cluster_exons[0]}, @these_exons );
-            $cluster_count++;
-	    $count++;
-            next LOCUS;
-        }
-	my @other_exons = get_all_Exons($locus);
-	my $overlap = 0;
-	# go through all available clusters:
-	for(my $i=0; $i<scalar(@locus_clusters); $i++){
-	    foreach my $exon1 (@other_exons){
-		foreach my $exon2 (@{$cluster_exons[$i]} ){
-		    print "Comparing @$exon1 with @$exon2\n" if $verbose;
-		    if ( !( $exon1->[2]  < $exon2->[1] || $exon1->[1]  > $exon2->[2] )  # overlap                                   
-			 &&
-			 ( $exon1->[1] == $exon2->[1] || $exon1->[2] == $exon2->[2] ) ){ # coincide in at least one splice-site
-			$overlap = 1;
-		    }
-		}
-	    }
-	    if ($overlap){         	    
-		# add locus to cluster
-		print "added\n" if $verbose;
-		push( @{$locus_clusters[$i]}, $locus );
-		
-		# update the exons:
-		push( @{$cluster_exons[$i]}, @other_exons);
-	    }
-	}
-	my $cluster_index = scalar(@locus_clusters) - 1;
-	unless ($overlap){
-	    # then we proceed with the next one: 
-	    # create new cluster (same variable name, new memory address!!!!)                                     
-	    push( @{$locus_clusters[$cluster_index+1]}, $locus );
-	    push( @{$cluster_exons[$cluster_index+1]}, @other_exons);
-	}
-    }
-    return  \@locus_clusters;
-}
 
 sub print_Transcript{
     my ($trans, $out) = @_;
