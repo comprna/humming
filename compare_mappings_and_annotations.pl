@@ -4,34 +4,63 @@ use strict;
 
 use libraries::Cluster;
 use libraries::FileReader;
+use Getopt::Long;
 
 my $verbose  = 0;
 my $verbose2 = 0;
 my $verbose3 = 0;
 
-my ($file1, $file2, $type1, $type2) = @ARGV;
+my ($file_pred, $file_ann, $format_pred, $format_ann, $help);
 
-my $merge_info = 0;
+# check options
+my $result = GetOptions(
+        'p|prediction=s' => \$file_pred,
+        'a|annotation=s' => \$file_ann,
+        'f|format_pred=s'=> \$format_pred,
+        'u|format_ann=s' => \$format_ann,
+        'h|help'         => \$help
+    );
 
-unless($file1 && $file2 && ($type1 eq "GFF" || $type1 eq "GTF") && ($type2 eq "GFF" || $type2 eq "GTF")){
-    print STDERR "Usage: $0 ref_file pred_file ref_type ref_type\n";
-    print STDERR "ref_type, pref_type = GFF, GTF\n";
-    print STDERR "ref_file is the reference file, pred_file is the prediction\n";
+print_usage() if( $help);
+
+unless ( $file_pred && $file_ann && $format_pred && $format_ann ){
+    print STDERR "Error: needs to specify some input information\n";
+    print_usage();
     exit(0);
 }
+
+unless( ($format_ann eq "GFF" || $format_ann eq "GTF") 
+	&& 
+	($format_pred eq "GFF" || $format_pred eq "GTF")){
+    print STDERR "ERROR: formats supported so far: GFF, GTF\n";
+    print_usage();
+}
+
+sub print_usage{
+    print STDERR "usage: perl compare_mappings_and_annotations.pl -a <annotations> -p <predictions> -f <format-annotations> -u <format-predictions>\n";
+    print STDERR "\n";
+    print STDERR "-a | --annotation:\tFile with the transcript annotations\n";
+    print STDERR "-a | --annotation:\tFile with the transcript annotations\n";
+    print STDERR "-f | --format_ann:\tFormat of the annotation file: GTF, GFF, PAF\n";
+    print STDERR "-u | --format_pred:\tFormat of the prediction file: GTF, GFF, PAF (it can be different from the annotation file)\n";
+    print STDERR "-h | --help:\tPrint this help\n";
+    print STDERR "\n";
+    exit(0);
+}
+
 
 my %strand;
 my %chr;
 
 # read GFF lines in annotation file 1
 # store all transcripts and all exons in each transcript
-my $trans1 = FileReader::read_file($file1, $type1, $verbose);
-my %trans1 = %$trans1;
+my $trans_ann = FileReader::read_file($file_ann, $format_ann, $verbose);
+my %trans_ann = %$trans_ann;
 
 # read GFF lines in annotation file 2
 # store all transcripts and all exons in each transcript
-my $trans2 = FileReader::read_file($file2, $type2, $verbose);
-my %trans2 = %$trans2;
+my $trans_pred = FileReader::read_file($file_pred, $format_pred, $verbose);
+my %trans_pred = %$trans_pred;
 
 #################
 # make transcripts out of exons:
@@ -39,9 +68,9 @@ my $chr;
 my $strand;
 
 my %chr1;
-foreach my $t_id (keys %trans1){
+foreach my $t_id (keys %trans_ann){
     # sort exons by the start coordinate in ascending order
-    my @exons = sort {$a->[1] <=> $b->[1]} @{$trans1{$t_id}};
+    my @exons = sort {$a->[1] <=> $b->[1]} @{$trans_ann{$t_id}};
 
     # define transcript attributes
     my $t_chr    = $exons[0]->[0];
@@ -59,9 +88,9 @@ foreach my $t_id (keys %trans1){
 }
 
 my %chr2;
-foreach my $t_id (keys %trans2){
+foreach my $t_id (keys %trans_pred){
     # sort exons by the start coordinate in ascending order
-    my @exons = sort {$a->[1] <=> $b->[1]} @{$trans2{$t_id}};
+    my @exons = sort {$a->[1] <=> $b->[1]} @{$trans_pred{$t_id}};
 
     # define transcript attributes
     my $t_chr    = $exons[0]->[0];
@@ -194,8 +223,8 @@ sub transcript_length{
 sub get_exons{
     my ($t) = @_;
     my @exons;
-    @exons = sort {$a->[1] <=> $b->[1]} @{$trans1{$t->[4]}} if ($trans1{$t->[4]});
-    @exons = sort {$a->[1] <=> $b->[1]} @{$trans2{$t->[4]}} if ($trans2{$t->[4]});
+    @exons = sort {$a->[1] <=> $b->[1]} @{$trans_ann{$t->[4]}} if ($trans_ann{$t->[4]});
+    @exons = sort {$a->[1] <=> $b->[1]} @{$trans_pred{$t->[4]}} if ($trans_pred{$t->[4]});
     return @exons;
 }
 
