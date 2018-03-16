@@ -2,6 +2,9 @@
 
 use strict;
 
+use libraries::Cluster;
+use libraries::FileReader;
+
 my $verbose  = 0;
 my $verbose2 = 0;
 my $verbose3 = 0;
@@ -22,12 +25,12 @@ my %chr;
 
 # read GFF lines in annotation file 1
 # store all transcripts and all exons in each transcript
-my $trans1 = read_file($file1, $type1);
+my $trans1 = FileReader::read_file($file1, $type1, $verbose);
 my %trans1 = %$trans1;
 
 # read GFF lines in annotation file 2
 # store all transcripts and all exons in each transcript
-my $trans2 = read_file($file2, $type2);
+my $trans2 = FileReader::read_file($file2, $type2, $verbose);
 my %trans2 = %$trans2;
 
 #################
@@ -94,7 +97,7 @@ foreach my $chr ( keys %chr ){
 
         # cluster transcripts according to their genomic extent
 	print "clustering ".scalar(@all_trans)." transcripts\n" if $verbose3;
-        my ( $clusters, $cluster_start, $cluster_end) = cluster( \@all_trans, 1, 2 );
+        my ( $clusters, $cluster_start, $cluster_end) = Cluster::cluster( \@all_trans, 1, 2 );
 
 	# for each cluster check the number of matching splicing sites and junctions
         foreach my $cluster (@$clusters){
@@ -175,46 +178,6 @@ sub test_overlap{
     }
     return (scalar(keys %ref_list), scalar(keys %pred_list), $overlap);
 }
-
-# Function: read_file
-# It reads a GFF or GTF file, it returns
-# a reference to a table (hash) that contains for each
-# transcript, all it exons
-sub read_file{
-    my ($file, $type) = @_;
-
-    my $trans;
-    open(IN,"<$file") or die("cannot open $file");
-    while(<IN>){
-	chomp;
-	#Chr1   TAIR10  exon    3631    3913    .       +       .       Parent=AT1G01010.1
-	my ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $col9) = split /\t/, $_;
-	next unless $feature eq "exon";
-	my ($t_id, $g_id);
-	if ($type eq "GFF"){
-	    if ($col9 =~/Parent=(\S+)/){
-		$t_id = $1;
-		$g_id = $t_id;
-	}
-	    else{
-		$t_id = $col9;
-		$g_id = $t_id;
-	    }
-	}
-	elsif($type eq "GTF"){
-	    if ( $col9=~/gene_id\s+\"(\S+)\";\s+transcript_id\s+\"(\S+)\";/){
-		$t_id = $1;
-		$g_id = $2;
-	    }
-	}
-	my $exon = [$chr, $start, $end, $strand, $t_id, $g_id];
-	print "storing exon: $chr, $start, $end, $strand, $t_id, $g_id\n" if $verbose;
-	push( @{$trans->{$t_id}}, $exon );
-    }
-    return $trans;
-}
-
-
 
 
 sub transcript_length{
@@ -364,81 +327,6 @@ sub get_3ss_splice_sites{
     }
     return \@sites;
 }
-
-
-sub cluster{
-    my ($loci, $s, $e) = @_;
-
-    # we generate cluster of loci                                                                                                                            
-    my $locus_clusters;
-
-    # sort loci by start coordinate in ascending order                                                                                                     
-    # and when equal, in descending end coordinate
-    my @sorted_loci = sort { $a->[$s] <=> $b->[$s] } @$loci;
-    
-    # start and end coordinates of the clusters                                                                                                            
-    my @cluster_start;
-    my @cluster_end;
-
-    # Create the first locus_cluster with the first locus                                                                                                    
-    my $locus_cluster = [];
-    push( @$locus_clusters, $locus_cluster);
-
-    # we go over all of them in sorted order (from left to right)                                                                                            
-    my $cluster_count = 0;
-    my $count = 0;
-
-  LOCUS:
-    foreach my $locus ( @sorted_loci ){
-        if ($count == 0){
-            # Create the first locus_cluster with the first locus                                                                                            
-            push( @$locus_cluster, $locus);
-            $cluster_start[0]  =  $locus->[$s];
-            $cluster_end[0]    =  $locus->[$e];
-            $count++;
-	    if ($verbose){
-		print  "cluster_count: $cluster_count\n";
-                print  "cluster_start: $cluster_start[$cluster_count] cluster_end: $cluster_end[$cluster_count]\n";
-            }
-            next LOCUS;
-        }
-        if ($verbose){
-            print  "cluster_count: $cluster_count\n";
-            print  "cluster_start: $cluster_start[$cluster_count] cluster_end: $cluster_end[$cluster_count]\n";
-        }
-	
-	# test overlap                                                                                                                                       
-	if ( !( $locus->[$e] < $cluster_start[$cluster_count] || $locus->[$s] > $cluster_end[$cluster_count]) ){
-	    # add locus to cluster                                                                                                                           
-	    print "added\n" if $verbose;
-	    push( @$locus_cluster, $locus );
-	    
-	    # update start and end of cluster if necessary                                                                                                   
-	    if ($locus->[$s] < $cluster_start[$cluster_count]) {
-		$cluster_start[$cluster_count] = $locus->[$s];
-	    }
-	    if ($locus->[$e] > $cluster_end[$cluster_count]) {
-		$cluster_end[$cluster_count]   = $locus->[$e];
-	    }
-	}
-	else{
-	    # then we proceed with the next one:                                                                                                             
-	    # create new cluster (same variable name, new memory address!!!!)                                                                                
-	    $locus_cluster = [];
-	    push( @$locus_clusters, $locus_cluster);
-	    
-	    # add locus in new cluster                                                                                                                       
-	    push( @$locus_cluster, $locus );
-	    $cluster_count++;
-	    $cluster_start[$cluster_count] = $locus->[$s];
-	    $cluster_end[$cluster_count]   = $locus->[$e];
-	}
-    }
-    return( $locus_clusters, \@cluster_start, \@cluster_end);
-}
-
-
-
 
 ###########################################
 
