@@ -4,7 +4,8 @@ use strict;
 
 use libraries::Cluster;
 use libraries::FileReader;
-use libraries::Compare;
+use libraries::CompareJunctions;
+use libraries::CompareGenes;
 use Getopt::Long;
 
 my $verbose  = 0;
@@ -81,18 +82,16 @@ my $trans_pred = FileReader::read_file($file_pred, $format_pred, $verbose);
 # of exon properties: $exon : [$chr, $start, $end, $strand, $t_id, $g_id];
 
 if ($compare_junctions){
-    Compare::compare_junctions($trans_ann,$trans_pred);
+    CompareJunctions::compare_junctions($trans_ann,$trans_pred);
 }
 
 if ($compare_genes){
-    print STDERR "Operation compare genes not yet in place\n";
-    exit(0);
-    Compare::compare_genes($trans_ann,$trans_pred);
+     CompareGenes::compare_genes($trans_ann,$trans_pred);
 }
 
 if ($compare_transcripts){
     print STDERR "Operation compare genes not yet in place\n";
     exit(0);
-    Compare::compare_transcripts($trans_ann,$trans_pred);
+    CompareTranscripts::compare_transcripts($trans_ann,$trans_pred);
 }
 
