@@ -30,7 +30,7 @@ my $result = GetOptions(
 print_usage() if( $help);
 
 unless ( $file_pred && $file_ann && $format_pred && $format_ann ){
-    print STDERR "Error: needs to specify some input information\n";
+    print STDERR "ERROR: needs to specify some input information\n";
     print_usage();
     exit(0);
 }
@@ -48,16 +48,17 @@ unless ( $compare_junctions || $compare_transcripts || $compare_genes ){
 }
 
 sub print_usage{
-    print STDERR "usage: perl compare_mappings_and_annotations.pl -a <annotations> -p <predictions> -f <format-annotations> -u <format-predictions>\n";
+    print STDERR "\n";
+    print STDERR "Usage: perl compare_mappings_and_annotations.pl -a <annotations> -p <predictions> -f <format-annotations> -u <format-predictions> < -j | -t | -g >\n";
     print STDERR "\n";
     print STDERR "-a | --annotation:\tFile with the transcript annotations\n";
-    print STDERR "-a | --annotation:\tFile with the transcript annotations\n";
+    print STDERR "-p | --prediction:\tFile with the transcript predictions\n";
     print STDERR "-f | --format_ann:\tFormat of the annotation file: GTF, GFF, PAF\n";
     print STDERR "-u | --format_pred:\tFormat of the prediction file: GTF, GFF, PAF (it can be different from the annotation file)\n";
     print STDERR "-j | --junctions:\tCompare splice sites and exon-exon junctions\n";
     print STDERR "-t | --transcripts:\tCompare transcripts. It matches transcripts within the same loci\n";
-    print STDERR "-g | --genes:\tCompare gene loci (genome extension in the same strand that produce one or more transcripts)\n";
-    print STDERR "-h | --help:\tPrint this help\n";
+    print STDERR "-g | --genes:\t\tCompare gene loci (genome extension in the same strand that produce one or more transcripts)\n";
+    print STDERR "-h | --help:\t\tPrint this help\n";
     print STDERR "\n";
     exit(0);
 }
@@ -84,10 +85,14 @@ if ($compare_junctions){
 }
 
 if ($compare_genes){
+    print STDERR "Operation compare genes not yet in place\n";
+    exit(0);
     Compare::compare_genes($trans_ann,$trans_pred);
 }
 
 if ($compare_transcripts){
+    print STDERR "Operation compare genes not yet in place\n";
+    exit(0);
     Compare::compare_transcripts($trans_ann,$trans_pred);
 }
 
