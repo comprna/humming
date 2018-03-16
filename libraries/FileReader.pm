@@ -32,7 +32,14 @@ sub read_GTF{
 	print "storing exon: $chr, $start, $end, $strand, $t_id, $g_id\n" if $verbose;
 	push( @{$trans->{$t_id}}, $exon );
     }
-    return $trans;
+    
+    my @transcripts;
+    foreach my $id (keys %$trans ){
+	my @e = @{$trans->{$id}};
+	my $t = \@e;
+	push( @transcripts, $t);
+    }
+    return \@transcripts;
 }
 
 
@@ -60,7 +67,13 @@ sub read_GFF{
 	print "storing exon: $chr, $start, $end, $strand, $t_id, $g_id\n" if $verbose;
 	push( @{$trans->{$t_id}}, $exon );
     }
-    return $trans;
+    my @transcripts;
+    foreach my $id (keys %$trans ){
+	my @e = @{$trans->{$id}};
+	my $t = \@e;
+	push( @transcripts, $t);
+    }
+    return \@transcripts;
 }
 
 
