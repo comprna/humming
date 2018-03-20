@@ -25,14 +25,15 @@ sub read_GTF{
 	next unless $feature eq "exon";
 	my ($t_id, $g_id);
 	if ( $col9=~/gene_id\s+\"(\S+)\";\s+transcript_id\s+\"(\S+)\";/){
-	    $t_id = $1;
-	    $g_id = $2;
+	    $t_id = $2;
+	    $g_id = $1;
 	}
 	my $exon = [$chr, $start, $end, $strand, $t_id, $g_id];
 	print "storing exon: $chr, $start, $end, $strand, $t_id, $g_id\n" if $verbose;
 	push( @{$trans->{$t_id}}, $exon );
     }
-    
+    #print "transcripts: ".scalar(keys %$trans)."\n";
+
     my @transcripts;
     foreach my $id (keys %$trans ){
 	my @e = @{$trans->{$id}};

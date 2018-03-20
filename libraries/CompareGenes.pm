@@ -23,8 +23,7 @@ my $verbose3 = 0;
 sub compare_genes{
     my ($trans_ann, $trans_pred) = @_;
 
-    # We count the total number of unique
-    # junctions and splice-sites, and the overlaps between them
+    # We count the total number of genes and the overlaps between them
     my $over_count = 0;
     my $pred_count    = 0;
     my $ann_count     = 0;
