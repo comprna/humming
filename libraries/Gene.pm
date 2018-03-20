@@ -7,6 +7,39 @@ my $verbose = 0;
 my $verbose2 = 0;
 
 ###########################################
+# function to make genes
+# We first cluster transcripts by genomic extent
+# then each cluster is analyzed to build genes, where a 
+# is defined as a set of transcripts transcribed from the same locus and strand
+# and sharing at least one splice-site or exon,
+# then genes are labeled. 
+#
+# input:
+#     a pointer to a list of transcripts, 
+#     a constrained = "exon" or "splice-site", which defines how to link the transcripts
+#     a flag = reuse. It means that the input already had gene Ids, which we reuse for labelling
+
+sub make_genes{
+    my ($transcripts, $constraint, $reuse) = @_;
+
+    # cluster transcripts according genomic extension overlap
+    my ($t_clusters, $t_clusters_start, $t_clusters_end) = Cluster::cluster_transcripts($transcripts);
+
+    # build genes in each cluster
+    my @genes;
+    foreach my $cluster (@$t_clusters){
+	my $genes = build_genes($cluster, $constraint);
+	push(@genes, @$genes);
+    }
+
+    # label genes
+    my $label = Gene::label_genes(\@genes, $reuse);
+
+    return (\@genes, $label);
+}
+
+
+###########################################
 # function to build genes
 # We define a gene as a set of transcripts transcribed from the same locus and strand
 # and sharing at least one splice-site
@@ -16,7 +49,7 @@ my $verbose2 = 0;
 #     the index position of the start and end coordinate of each transcript: $s, $e
 
 sub build_genes{
-    my ($transcripts) = @_;
+    my ($transcripts, $constraint) = @_;
     
     # use flag to run Depth First afterwards
     my $color; 
@@ -29,7 +62,7 @@ sub build_genes{
     
     if ($verbose2){
 	foreach my $t (@sorted_transcripts){
-	    print_Transcript($t);
+	    print_transcript($t);
 	}
     }
     
@@ -47,11 +80,21 @@ sub build_genes{
       TRAN2:
         foreach my $tran2 (@sorted_transcripts) {
             next if ($tran1 == $tran2);
-	    if (test_exon_overlap($tran1, $tran2) ){
+	    my $test;
+	    if ($constraint && $constraint eq "exon"){
+		$test = test_exon_overlap($tran1, $tran2);
+	    }
+	    elsif($constraint && $constraint eq "splice-site"){
+		$test = test_splice_site_overlap($tran1, $tran2);
+	    }
+	    else{
+		$test = test_exon_overlap($tran1, $tran2);
+	    }
+	    if ($test){
 		if ($verbose2){
 		    print "linking\n";
-		    print_Transcript($tran1);
-		    print_Transcript($tran2);
+		    print_transcript($tran1);
+		    print_transcript($tran2);
 		}
 		push( @{$adj_list->{$tran1}}, $tran2 );
 	    }
@@ -74,6 +117,7 @@ sub build_genes{
     }
     return \@tran_clusters;
 }
+
 
 ############################
 # algorithm to recover the groups of linked transcripts
@@ -106,10 +150,36 @@ sub depth_first_nonrecursive{
 # have exons with at least
 # a shared splice-site
 
+
+
 sub test_exon_overlap{
     my ($tran1, $tran2) = @_;
-    my @exons1 = get_exons($tran1);
-    my @exons2 = get_exons($tran2);
+    my @exons1 = get_sorted_exons($tran1);
+    my @exons2 = get_sorted_exons($tran2);
+    
+    # each transcript is a pointer to a list (arrayref) of exons
+    # each exon is a pointer to a list (arrayref): [$chr, $start, $end, $strand, $frame, $exon_label, $trans_id, $gene_id ]                        
+    foreach my $exon1 ( @exons1 ){
+	foreach my $exon2 ( @exons2 ){
+	    if ( $exon1->[1] == $exon2->[1] && $exon1->[2] == $exon2->[2] ){ # coincide in at least one splice-site
+		if($verbose2){
+		    print "LINKED\n";
+		    #print "link $tran1 $tran2\n";                                                                                              
+		    #print "color[$tran1] = ".$color->{$tran1}."\n";                                                                            
+		    #print "color[$tran2] = ".$color->{$tran2}."\n";
+		}
+		return 1;
+	    }
+	}
+    }
+    return 0;
+}
+
+
+sub test_splice_site_overlap{
+    my ($tran1, $tran2) = @_;
+    my @exons1 = get_sorted_exons($tran1);
+    my @exons2 = get_sorted_exons($tran2);
     
     # each transcript is a pointer to a list (arrayref) of exons
     # each exon is a pointer to a list (arrayref): [$chr, $start, $end, $strand, $frame, $exon_label, $trans_id, $gene_id ]                        
@@ -128,10 +198,44 @@ sub test_exon_overlap{
 	    }
 	}
     }
+    return 0;
+}
+
+sub label_genes{
+    my ($genes, $reuse) = @_;
+    my $count = 1;
+    my $label1;
+    my $label2;
+    foreach my $g (@$genes){
+	my $labels;
+	
+	# build simple label;
+	my $gene_id = "gene_".$count;
+	$label1->{$g} = $gene_id;
+	$count++;
+	
+	# reuse label
+	foreach my $t (@$g){
+	    my @e = @$t;
+	    # exon: [chr, start, end, strand, t_id, g_id]
+	    my $t_id = $e[0]->[4]; 
+	    my $g_id = $e[0]->[5];
+	    $labels->{$g_id}++;
+	}
+	my @ids = sort {$a cmp $b} keys %$labels;
+	my $new_id = join ":", @ids;
+	$label2->{$g} = $new_id;
+    }
+    if ($reuse){
+	return $label2;
+    }
+    else{
+	return $label1;
+    }
 }
 
 
-sub get_exons{
+sub get_sorted_exons{
     my ($t) = @_;
     return sort {$a->[1] <=> $b->[1]} @{$t};
 }
@@ -148,26 +252,18 @@ sub transcript_end{
     return $e[-1]->[2];
 }
 
-
-
-sub print_Transcript{
-    my ($trans, $out) = @_;
-    my $s = join "\t", ("Transcript:", @$trans);
-    if ($out){
-        print STDERR "Transcript:".$s."\n";
-    }
-    else{
-        print "Transcript:".$s."\n";
-    }
-}
-
-sub print_Exons{
+sub print_transcript{
     my ($t) = @_;
-    my @exons = get_exons($t);
-    foreach my $e (@exons){
-        my $p = join "\t", ("INFO:", "Exon:", @$e);
-        print $p."\n";
+    my @e = @$t;
+    my @coords;
+    my $strand = $e[0]->[3];
+    my $chr    = $e[0]->[0];
+    my $t_id   = $e[0]->[4];
+    foreach my $ee (@e){
+        push( @coords, $ee->[1]."-".$ee->[2] );
     }
+    my $s = join "\t", ($t_id, $chr, $strand, @coords);
+    print $s."\n";
 }
 
 
