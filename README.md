@@ -37,8 +37,8 @@ perl compare_mappings_and_annotations.pl -a <annotations> -p <predictions> -f <f
 
 - **-a** | **--annotation**:	File with the transcript annotations
 - **-p** | **--prediction**:	File with the transcript predictions
-- **-f** | **--format_ann**: 	Format of the annotation file: GTF, GFF, PAF
-- **-u** | **--format_pred**:  	Format of the prediction file: GTF, GFF, PAF (it can be different from the annotation file)
+- **-f** | **--format_ann**: 	Format of the annotation file: GTF, GFF
+- **-u** | **--format_pred**:  	Format of the prediction file: GTF, GFF (it can be different from the annotation file)
 - **-j** | **--junctions**:	Compare splice sites and exon-exon junctions
 - **-t** | **--transcripts**:	Compare transcripts. It matches transcripts within the same loci
 - **-g** | **--genes**:		Compare gene loci (genome extension in the same strand that produce one or more transcripts)
@@ -120,11 +120,11 @@ chr14 Ensembl exon  73753818  73754022  0.0 - . ENST00000000001.1
 
 ```
 
-The columns correspond to: chromosome, source, feature,	start, end, score, strand, frame, and transcript ID.
+The columns correspond to: `chromosome, source, feature, start, end, score, strand, frame, and transcript ID`.
 
 #### PAF
 
-The PAF format is still not supported. 
+The PAF format is not yet supported - `under development`
 
 
 ----------------------------
