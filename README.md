@@ -31,7 +31,9 @@ and genes. For genes the comparison is performed by first making genes (see belo
 
 Usage: 
 
+```
 perl compare_mappings_and_annotations.pl -a <annotations> -p <predictions> -f <format-annotations> -u <format-predictions> < -j | -t | -g >
+```
 
 - **-a** | **--annotation**:	File with the transcript annotations
 - **-p** | **--prediction**:	File with the transcript predictions
@@ -61,7 +63,9 @@ it only uses the exon-intron structure of transcripts without considering any ot
 
 Usage: 
 
+```
 perl build_genes.pl -i <input> -f <format> -c <constraint>
+```
 
 - **-i** | **--input**:      File name with transcripts
 - **-f** | **--format**:     Format of the transcript file: GTF, GFF
@@ -80,7 +84,8 @@ perl build_genes.pl -i transcripts.gff -f GTF -c exon -o output_test -r
 The method to build genes performs a fast clustering of transcripts (linear in the number of transcripts)
 by genomic extent (and strand) first. In a second step, it analyzes each transcript cluster, links 
 transcripts according to the defined constraint, and recovers the sets of transcripts that form a gene 
-(It recovers the connected components of the graph built using depth first search). 
+(It recovers the connected components of the graph built using depth first search). Gene IDs are either numbered clusters,
+or made up from pre-existing gene IDs in the input file (if the option `reuse` is set).
 
 
 
@@ -99,7 +104,7 @@ chr14 Ensembl exon  73750789  73751082  0.0 - . gene_id "ENSG00000000001"; trans
 chr14 Ensembl exon  73753818  73754022  0.0 - . gene_id "ENSG00000000001"; transcript_id "ENST00000000001.1";
 
 ```
-The columns correspond to: chromosome, source, feature, start, end, score, strand, frame, and the composite column 9; where
+The columns correspond to: `chromosome, source, feature, start, end, score, strand, frame`, and the composite `column 9`; where
 column 9 requires the format as shown in the example.
 
 
@@ -108,10 +113,10 @@ column 9 requires the format as shown in the example.
 The GFF format, as with GTF, only requires exon lines, and the 9th column defines the transcript (group ID):
 
 ```
-chr14 Ensembl exon  73741918  73744001  0.0 - . ENST00000000001.1;
-chr14 Ensembl exon  73749067  73749213  0.0 - . ENST00000000001.1;
-chr14 Ensembl exon  73750789  73751082  0.0 - . ENST00000000001.1;
-chr14 Ensembl exon  73753818  73754022  0.0 - . ENST00000000001.1;
+chr14 Ensembl exon  73741918  73744001  0.0 - . ENST00000000001.1
+chr14 Ensembl exon  73749067  73749213  0.0 - . ENST00000000001.1
+chr14 Ensembl exon  73750789  73751082  0.0 - . ENST00000000001.1
+chr14 Ensembl exon  73753818  73754022  0.0 - . ENST00000000001.1
 
 ```
 
