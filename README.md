@@ -5,7 +5,7 @@
 Humming is a a set of tools for the analysis of long-read mappings to a genome reference. 
 
 ----------------------------
-# Set up
+## Set up
 ----------------------------
 
 Humming is developed in Perl.
@@ -21,7 +21,7 @@ Once downloaded, the scripts can be used directly from the command line by speci
 defined in the libraries/ directory. 
 
 ----------------------------------------
-# Comparison of mappings and annotations
+## Comparison of mappings and annotations
 ----------------------------------------
 
 This program compares a set of mapped long-reads or predicted transcripts (in GFF/GTF/PAF format) with a set of
@@ -49,7 +49,7 @@ perl compare_mappings_and_annotations.pl -a mapped_reads.gtf -p gencode.gtf -f G
 ```
 
 ----------------------------
-# Make genes
+## Make genes
 ----------------------------
 
 From a set of transcripts in GFF format (or GTF format) you can build genes. A gene is defined
@@ -85,10 +85,10 @@ transcripts according to the defined constraint, and recovers the sets of transc
 
 
 ----------------------------
-# Formats
+## Formats
 ----------------------------
 
-## GTF
+#### GTF
 
 The GTF format required only needs to contain the exon lines, e.g.:
 
@@ -103,7 +103,7 @@ The columns correspond to: chromosome, source, feature, start, end, score, stran
 column 9 requires the format as shown in the example.
 
 
-## GFF
+#### GFF
 
 The GFF format, as with GTF, only requires exon lines, and the 9th column defines the transcript (group ID):
 
@@ -117,13 +117,13 @@ chr14 Ensembl exon  73753818  73754022  0.0 - . ENST00000000001.1;
 
 The columns correspond to: chromosome, source, feature,	start, end, score, strand, frame, and transcript ID.
 
-## PAF
+#### PAF
 
 The PAF format is still not supported. 
 
 
 ----------------------------
-# Citation
+## Citation
 ----------------------------
 
 Humming code is based on the code from 
@@ -133,7 +133,7 @@ ESTs in Ensembl. Genome Res. 2004 May;14(5):976-87. PMID: 15123595;
 
 
 ----------------------------
-# License
+## License
 ----------------------------
 
 Humming code is released under the MIT license. 
