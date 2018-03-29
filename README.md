@@ -95,21 +95,6 @@ or made up from pre-existing gene IDs in the input file (if the option `reuse` i
 Script to perform conversion between formats generally used to describe transcript annotations and/or mappings to a genome reference.
 Format supported so far are: GTF, GFF, BED12, PAF (under construction).
 
-
-Usage:
-
-```
-perl build_genes.pl -i <input> -f <format> -c <constraint>
-```
-
-- **-i** | **--input**:      File name with transcripts
-- **-f** | **--format**:     Format of the transcript file: GTF, GFF
-- **-o** | **--output**:     Output file name (GTF format)
-- **-c** | **--constraint**: Label:exon or splice-site. Genes are defined as transcripts overlapping
-                             in the same strand and sharing an exon or a splice-site. Default: exon
-- **-r** | **--reuse**:      Optional. It will reuse gene IDs if available. Default: not set
-- **-h** | **--help**:       Print this help
-
 Usage:
 
 ```
