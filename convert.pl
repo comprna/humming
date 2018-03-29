@@ -52,6 +52,6 @@ sub print_usage{
 my $trans = FileReader::read_file($file, $format_in);
 
 # write output
-FileWriter::write_file($trans, $format_out);
+FileWriter::write_file($trans, $output, $format_out);
 
 1;
