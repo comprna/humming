@@ -4,7 +4,7 @@ use strict;
 
 
 sub write_file{
-    my ($trans, $format, $output) = @_;
+    my ($trans, $output, $format) = @_;
 
     if ($format eq "GTF"){
         return write_GTF($trans, $output);
