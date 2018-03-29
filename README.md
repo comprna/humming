@@ -88,6 +88,49 @@ transcripts according to the defined constraint, and recovers the sets of transc
 or made up from pre-existing gene IDs in the input file (if the option `reuse` is set).
 
 
+----------------------------
+## Format conversion
+----------------------------
+
+Script to perform conversion between formats generally used to describe transcript annotations and/or mappings to a genome reference.
+Format supported so far are: GTF, GFF, BED12, PAF (under construction).
+
+
+Usage:
+
+```
+perl build_genes.pl -i <input> -f <format> -c <constraint>
+```
+
+- **-i** | **--input**:      File name with transcripts
+- **-f** | **--format**:     Format of the transcript file: GTF, GFF
+- **-o** | **--output**:     Output file name (GTF format)
+- **-c** | **--constraint**: Label:exon or splice-site. Genes are defined as transcripts overlapping
+                             in the same strand and sharing an exon or a splice-site. Default: exon
+- **-r** | **--reuse**:      Optional. It will reuse gene IDs if available. Default: not set
+- **-h** | **--help**:       Print this help
+
+Usage:
+
+```
+perl convert.pl -i <input> -f <format_in> -o <output> -u <format_out>
+```
+
+- **-i** | **--input**:      File name with transcripts
+- **-f** | **--format_in**:  Format of the transcript file: GTF, GFF, BED12, PAF
+- **-o** | **--output**:     Output file name
+- **-u** | **--format_out**: Format of the transcript file: GTF, GFF, BED12, PAF
+- **-h** | **--help**:       Print this help
+
+Example:
+
+```
+perl convert.pl -i RefSeq.bed -f BED12 -o RefSeq.gff -u GFF
+```
+
+Important: RefSeq annotations in BED12 format usually contains multiple lines for the same transcript ID, indicating
+paralogs. In the consersion to GFF or GTF, these will be separated by adding to the transcript id a subindex "_i", so that
+they are not confused in downstream analyses. 
 
 ----------------------------
 ## Formats
