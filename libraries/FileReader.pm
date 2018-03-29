@@ -11,7 +11,7 @@ sub read_file{
 	return read_GFF($file, $v);
     }
     elsif( $type eq "BED12"){
-	return read_BD12($file, $v);
+	return read_BED12($file, $v);
     }
     elsif( $type eq "PAF"){
 	return read_PAF($file, $v);
