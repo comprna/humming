@@ -24,7 +24,7 @@ sub compare_transcripts_bidirectional{
     my $ann_count  = 0;
 
     # cluster transcripts by genomic extent and strand overlap                                                                                    
-    my ($clusters, $label) = cluster_transcripts_2sets($trans_ann, $trans_pred);
+    my ($clusters, $label) = Cluster::cluster_transcripts_2sets($trans_ann, $trans_pred);
     
     # from each transcript cluster, we compare transcripts from both labels
     foreach my $cluster (@$clusters){
@@ -93,7 +93,7 @@ sub compare_transcripts_directional{
     my $ann_count  = 0;
 
     # cluster transcripts by genomic extent and strand overlap                                                                                    
-    my ($clusters, $label) = cluster_transcripts_2sets($trans_ann, $trans_pred);
+    my ($clusters, $label) = Cluster::cluster_transcripts_2sets($trans_ann, $trans_pred);
     
     # from each transcript cluster, we compare transcripts from both labels
     foreach my $cluster (@$clusters){
@@ -321,24 +321,6 @@ sub sort_scores{
 }
 
 ############################################################
-
-sub cluster_transcripts_2sets{
-    my ($t_ann, $t_pred) = @_;
-    my $label;
-    my $trans;
-    foreach my $t (@$t_ann){
-        $label->{$t} = "ann";
-        push(@$trans,$t);
-    }
-    foreach my $t (@$t_pred){
-        $label->{$t} = "pred";
-        push(@$trans, $t);
-    }
-    my ( $clusters, $cluster_start, $cluster_end) = Cluster::cluster_transcripts($trans);
-    return ($clusters, $label);
-}
-
-######################################
 
 sub print_transcript{
     my ($t) = @_;

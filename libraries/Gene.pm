@@ -150,8 +150,6 @@ sub depth_first_nonrecursive{
 # have exons with at least
 # a shared splice-site
 
-
-
 sub test_exon_overlap{
     my ($tran1, $tran2) = @_;
     my @exons1 = get_sorted_exons($tran1);
@@ -161,7 +159,8 @@ sub test_exon_overlap{
     # each exon is a pointer to a list (arrayref): [$chr, $start, $end, $strand, $frame, $exon_label, $trans_id, $gene_id ]                        
     foreach my $exon1 ( @exons1 ){
 	foreach my $exon2 ( @exons2 ){
-	    if ( $exon1->[1] == $exon2->[1] && $exon1->[2] == $exon2->[2] ){ # coincide in at least one splice-site
+	    # exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                      
+	    if ( $exon1->[3] == $exon2->[3] && $exon1->[4] == $exon2->[4] ){ # coincide in an exon
 		if($verbose2){
 		    print "LINKED\n";
 		    #print "link $tran1 $tran2\n";                                                                                              
@@ -185,9 +184,10 @@ sub test_splice_site_overlap{
     # each exon is a pointer to a list (arrayref): [$chr, $start, $end, $strand, $frame, $exon_label, $trans_id, $gene_id ]                        
     foreach my $exon1 ( @exons1 ){
 	foreach my $exon2 ( @exons2 ){
-	    if ( !( $exon1->[2]  < $exon2->[1] || $exon1->[1]  > $exon2->[2] )  # overlap                                   
+	    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                      
+	    if ( !( $exon1->[4]  < $exon2->[3] || $exon1->[3]  > $exon2->[4] )  # overlap                                   
 		 &&
-		 ( $exon1->[1] == $exon2->[1] || $exon1->[2] == $exon2->[2] ) ){ # coincide in at least one splice-site
+		 ( $exon1->[3] == $exon2->[3] || $exon1->[4] == $exon2->[4] ) ){ # coincide in at least one splice-site
 		if($verbose2){
 		    print "LINKED\n";
 		    #print "link $tran1 $tran2\n";                                                                                              
@@ -237,30 +237,34 @@ sub label_genes{
 
 sub get_sorted_exons{
     my ($t) = @_;
-    return sort {$a->[1] <=> $b->[1]} @{$t};
+    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                               
+    return sort {$a->[3] <=> $b->[3]} @{$t};
 }
 
 sub transcript_start{
     my ($t) = @_;
-    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
+    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                               
+    my @e = sort {$a->[3] <=> $b->[3]} @{$t};
     return $e[0]->[1];
 }
 
 sub transcript_end{
     my ($t) = @_;
-    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
-    return $e[-1]->[2];
+    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                               
+    my @e = sort {$a->[3] <=> $b->[3]} @{$t};
+    return $e[-1]->[4];
 }
 
 sub print_transcript{
     my ($t) = @_;
     my @e = @$t;
     my @coords;
-    my $strand = $e[0]->[3];
+    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                               
+    my $strand = $e[0]->[6];
     my $chr    = $e[0]->[0];
-    my $t_id   = $e[0]->[4];
+    my $t_id   = $e[0]->[8];
     foreach my $ee (@e){
-        push( @coords, $ee->[1]."-".$ee->[2] );
+        push( @coords, $ee->[3]."-".$ee->[4] );
     }
     my $s = join "\t", ($t_id, $chr, $strand, @coords);
     print $s."\n";

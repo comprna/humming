@@ -175,15 +175,17 @@ sub transcript_length{
     my @e = @{$t};
     my $l=0;
     foreach my $e (@e){
-	my ($chr, $start, $end, $strand, $trans_id, $gene_id) = @$e;
+	# chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+	my ($chr, $source, $feature, $start, $end, $score, $strand, $frame, $trans_id, $gene_id) = @$e;
 	$l += ($end - $start + 1);
     }
     return $l;
 }
 
-sub get_exons{
+sub get_sorted_exons{
     my ($t) = @_;
-    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
+    # chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+    my @e = sort {$a->[3] <=> $b->[3]} @{$t};
     return @e;
 }
 
@@ -198,19 +200,19 @@ sub get_junctions{
     my ($t) = @_;
     
     # we get the exons
-    my @exons = get_exons($t);
+    my @exons = get_sorted_exons($t);
 
     # we extract sorted exons
-    my @sorted_exons = sort {$a->[1] <=> $b->[1]} @exons;
+    my @sorted_exons = sort {$a->[3] <=> $b->[3]} @exons;
 
     # extract junctions
     my @junctions;
     for (my $i=0; $i<scalar(@exons) - 1; $i++){
-	# exon : [$chr, $start, $end, $strand, $trans_id, $gene_id]
-	my $junc_start  = $exons[$i]->[2];
-	my $junc_end    = $exons[$i+1]->[1];
+	# exon : chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+	my $junc_start  = $exons[$i]->[4];
+	my $junc_end    = $exons[$i+1]->[3];
 	my $junc_chr    = $exons[$i]->[0];
-	my $junc_strand = $exons[$i]->[3];
+	my $junc_strand = $exons[$i]->[6];
 	my $junc        = $junc_chr.":".$junc_start."-".$junc_end.":".$junc_strand;
 	push( @junctions, $junc);
     }
@@ -229,13 +231,10 @@ sub get_5ss_splice_sites{
     my ($t) = @_;
     
     # we get the exons
-    my @exons = get_exons($t);
+    my @exons = get_sorted_exons($t);
 
     # strand
-    my $strand = $exons[0]->[3];
-
-    # we extract exons sorted from left to right
-    my @sorted_exons = sort {$a->[1] <=> $b->[1]} @exons;
+    my $strand = $exons[0]->[6];
 
     # extract junctions
     my @sites;
@@ -243,11 +242,11 @@ sub get_5ss_splice_sites{
 	# #####----#####------#####-----#####
 	#     --       --         --
 	for (my $i=0; $i<scalar(@exons)-1; $i++){
-	    # exon : [$chr, $start, $end, $strand, $trans_id, $gene_id]
-	    my $site_start  = $exons[$i]->[2];
+	    # exon : chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+	    my $site_start  = $exons[$i]->[4];
 	    my $site_end    = $site_start + 1;
 	    my $site_chr    = $exons[$i]->[0];
-	    my $site_strand = $exons[$i]->[3];
+	    my $site_strand = $exons[$i]->[6];
 	    my $site        = $site_chr.":".$site_start."-".$site_end.":".$site_strand;
 	    push( @sites, $site);
 	}
@@ -256,11 +255,11 @@ sub get_5ss_splice_sites{
 	# #####----#####------#####-----#####
 	#         --         --        --
 	for (my $i=1; $i<scalar(@exons); $i++){
-	    # exon : [$chr, $start, $end, $strand, $trans_id, $gene_id]
-	    my $site_end    = $exons[$i]->[1];
+	    # exon : chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+	    my $site_end    = $exons[$i]->[3];
 	    my $site_start  = $site_end - 1;
 	    my $site_chr    = $exons[$i]->[0];
-	    my $site_strand = $exons[$i]->[3];
+	    my $site_strand = $exons[$i]->[6];
 	    my $site        = $site_chr.":".$site_start."-".$site_end.":".$site_strand;
 	    push( @sites, $site);
 	}
@@ -278,10 +277,10 @@ sub get_3ss_splice_sites{
     my ($t) = @_;
     
     # we get the exons
-    my @exons = get_exons($t);
+    my @exons = get_sorted_exons($t);
 
     # strand
-    my $strand = $exons[0]->[3];
+    my $strand = $exons[0]->[6];
 
     # we extract sorted exons
     my @sorted_exons = sort {$a->[1] <=> $b->[1]} @exons;
@@ -292,11 +291,11 @@ sub get_3ss_splice_sites{
 	# #####----#####------#####-----#####
 	#         --         --        --
 	for (my $i=1; $i<scalar(@exons); $i++){
-	    # exon : [$chr, $start, $end, $strand, $trans_id, $gene_id]
-	    my $site_start  = $exons[$i]->[1] - 1;
-	    my $site_end    = $exons[$i]->[1];
+	    # exon : chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+	    my $site_start  = $exons[$i]->[3] - 1;
+	    my $site_end    = $exons[$i]->[3];
 	    my $site_chr    = $exons[$i]->[0];
-	    my $site_strand = $exons[$i]->[3];
+	    my $site_strand = $exons[$i]->[6];
 	    my $site        = $site_chr.":".$site_start."-".$site_end.":".$site_strand;
 	    push( @sites, $site);
 	}
@@ -305,11 +304,11 @@ sub get_3ss_splice_sites{
 	# #####----#####------#####-----#####
 	#     --       --         --
 	for (my $i=0; $i<scalar(@exons)-1; $i++){
-	    # exon : [$chr, $start, $end, $strand, $trans_id, $gene_id]
-	    my $site_start  = $exons[$i]->[2];
+	    # exon : chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+	    my $site_start  = $exons[$i]->[4];
 	    my $site_end    = $site_start + 1;
 	    my $site_chr    = $exons[$i]->[0];
-	    my $site_strand = $exons[$i]->[3];
+	    my $site_strand = $exons[$i]->[6];
 	    my $site        = $site_chr.":".$site_start."-".$site_end.":".$site_strand;
 	    push( @sites, $site);
 	}
@@ -319,26 +318,5 @@ sub get_3ss_splice_sites{
 
 ###########################################
 
-sub print_Transcript{
-    my ($trans, $out) = @_;
-    my $s = join "\t", ("Transcript:", @$trans);
-    if ($out){
-	print STDERR "Transcript:".$s."\n";
-    }
-    else{
-	print "Transcript:".$s."\n";
-    }
-}
-
-sub print_Exons{
-    my ($t) = @_;
-    my @exons = get_exons($t);
-    foreach my $e (@exons){
-	my $p = join "\t", ("INFO:", "Exon:", @$e);
-	print $p."\n";
-    }
-}
-
-###########################################
 
 1;

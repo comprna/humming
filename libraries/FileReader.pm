@@ -46,7 +46,7 @@ sub read_GTF{
 	    $t_id = $2;
 	    $g_id = $1;
 	}
-	my $exon = [$chr, $start, $end, $strand, $t_id, $g_id];
+	my $exon = [$chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id];
 	print "storing exon: $chr, $start, $end, $strand, $t_id, $g_id\n" if $verbose;
 	push( @{$trans->{$t_id}}, $exon );
     }
@@ -91,7 +91,7 @@ sub read_GFF{
 	    $t_id = $col9;
 	    $g_id = $t_id;
 	}
-	my $exon = [$chr, $start, $end, $strand, $t_id, $g_id];
+	my $exon = [$chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id];
 	print "storing exon: $chr, $start, $end, $strand, $t_id, $g_id\n" if $verbose;
 	push( @{$trans->{$t_id}}, $exon );
     }
@@ -146,8 +146,8 @@ sub read_BED12{
 	    my ($exon_start, $exon_end);
 	    $exon_start = $chr_start + $start[$i];
 	    $exon_end   = $exon_start + $size[$i] - 1;
-	    
-	    my $exon = [$chr, $exon_start, $exon_end, $strand, $t_id, $g_id];
+	    #my $exon = [$chr, $exon_start, $exon_end, $strand, $t_id, $g_id];
+	    my $exon = [$chr, "bed12", "exon", $exon_start, $exon_end, $score, $strand, ".", $t_id, $g_id];
 	    print "storing exon: $chr, $exon_start, $exon_end, $strand, $t_id, $g_id\n" if $verbose;
 	    push( @{$trans->{$t_id}}, $exon );
 	}
@@ -162,14 +162,126 @@ sub read_BED12{
 }
 
 # PAF
+# PAF format:
+#5f0ea31a-9cbc-4a00-b113-a76d6e72a742    703     2       433     -       NC_000009.12    138394717       19376508        19378797 2249 2358 60 tp:A:P cm:i:18 s1:i:101 s2:i:78 NM:i:109 ms:i:129 AS:i:65 nn:i:0 ts:A:+ cg:Z:28M2I9M2I5M2I6M1D4M2D7M1D11M2D4M1I3M5I2M5I2M4I5M3D9M1I11M1D25M3I2M1716N2M1I4M1I5M2I2M1D16M2I4M4I5M1I13M3D6M5I9M3I8M3I22M2I2M1I3M1D1M2D8M2I1M1I29M193N13M1I16M1I6M1I11M1I9M7I14M3I6M2I4M1D10M
+
+# 1  Query sequence name
+# 2  Query sequence length
+# 3  Query start (0-based)
+# 4  Query end (0-based)
+# 5  Relative strand: "+" or "-"
+# 6  Target sequence name
+# 7  Target sequence length
+# 8  Target start on original strand (0-based)
+# 9  Target end on original strand (0-based)
+# 10 Number of sequence matches
+# 11 Alignment block length (total number of sequence matches, mismatches, insertions and deletions in the alignment)
+# 12 Mapping quality (0-255; 255 for missing)    
+# 13 SAM-like output
 sub read_PAF{
     my ($file, $verbose) = @_;
-
     my $trans;
-    my %count;
-    
-    print STDERR "PAF reader not implemented yet. Apologies.\n";
-    exit(0)
+    my %count;    
+    open(IN,"<$file") or die("cannot open $file");
+    while(<IN>){
+        chomp;  
+	my ($query_name,  $query_length,  $query_start,  $query_end, $relative_strand,
+	    $target_name, $target_length, $target_start, $target_end,
+	    $num_of_matches, $align_length, $map_quality, @sam_fields) = split /\t/, $_;
+	
+	$count{$query_name}++;
+	print "reading $query_name $target_name\n" if $verbose;
+	my $cigar;
+	foreach my $f (@sam_fields){
+	    # get cigar string
+	    if ($f =~/cg:Z:(.*)/){
+		$cigar = $1;
+		print "getting cigar $cigar\n" if $verbose;
+	    }
+	}
+	
+	
+	# transform to 1-based
+	$query_start++;
+	$query_end++;
+	$target_start++;
+	$target_end++;
+	
+	# parse cigar:
+	my $blocks = parse_cigar($cigar, $verbose);
+	my @exons; 
+	my $exon_start = $target_start;
+	my $exon_end   = $target_start;
+	my %added;
+	foreach my $block (@$blocks){
+	    my ($size, $id) = @$block;
+	    # grow each exon
+	    if ($id eq "M" || $id eq "I" || ($id eq "D" && $size < 25) ){
+		$exon_end = $exon_end + $size - 1;
+	    }
+	    # until finding an intron
+	    elsif( $id eq "N" || ($id eq "D" && $size >= 25) ){
+		push(@exons, [$exon_start, $exon_end]);
+		$added{$exon_start}{$exon_end}++;
+		$exon_start = $exon_end + $size + 1;
+		$exon_end   = $exon_start;
+	    }
+	}
+	# add the last exons
+	push(@exons, [$exon_start, $exon_end]) unless $added{$exon_start}{$exon_end};
+		
+	foreach my $exon (@exons){
+	    # chromosome, source, feature, start, end, score, strand, frame, transcript_id, $gene_id
+	    my $t_id;
+	    if ($count{$query_name} > 1){
+		$t_id = $query_name."_".$count{$query_name};
+	    }
+	    my $g_id = $t_id;
+	    my $score = $align_length / $query_length;
+	    my $e = [$target_name, "hum", "exon", $exon_start, $exon_end, $score, $relative_strand, ".", $t_id, $g_id];
+	    print "storing exon: $target_name, $exon_start, $exon_end, $relative_strand, $t_id, $g_id\n" if $verbose;
+	    push( @{$trans->{$t_id}}, $exon );
+	}
+    }
+    my @transcripts;
+    foreach my $id (keys %$trans ){
+	my @e = @{$trans->{$id}};
+	my $t = \@e;
+	push( @transcripts, $t);
+    }
+    return \@transcripts;
+}    
+
+#CIGAR  CIGAR strings ("Compact Idiosyncratic Gapped Alignment Report"),
+#M   alignment match (can be a sequence match or mismatch)
+#I   insertion to the reference
+#D   deletion from the reference
+#N   skipped region from the reference
+#S   soft clipping (clipped sequences present in SEQ)
+#H   hard clipping (clipped sequences NOT present in SEQ)
+#P   padding (silent deletion from padded reference)
+#=   sequence match
+#X   sequence mismatch
+#
+# H can only be present as the first and/or last operation.
+# S may only have H operations between them and the ends of the string.
+# For mRNA-to-genome alignment, an N operation represents an intron.
+# For other types of alignments, the interpretation of N is not defined.
+# Sum of the lengths of the M/I/S/=/X operations shall equal the length of SEQ.
+#
+sub parse_cigar {
+    my ($c, $verbose) = @_;
+    my @items = ($c =~ /(\d*[MIDNSHP=X])/g);
+    my @blocks;
+    foreach my $item (@items){
+	print $item."\n" if $verbose;
+	$item =~/(\d+)([\w=])/;
+	my $num = $1;
+	my $id  = $2;
+	push(@blocks, [$num, $id]);
+    }
+    return \@blocks;
 }
+
 
 1;

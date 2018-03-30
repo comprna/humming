@@ -164,6 +164,23 @@ sub cluster_transcripts{
     return( $locus_clusters, \@cluster_start, \@cluster_end);
 }
 
+
+sub cluster_transcripts_2sets{
+    my ($t_ann, $t_pred) = @_;
+    my $label;
+    my $trans;
+    foreach my $t (@$t_ann){
+	$label->{$t} = "ann";
+        push(@$trans,$t);
+    }
+    foreach my $t (@$t_pred){
+	$label->{$t} = "pred";
+        push(@$trans, $t);
+    }
+    my ( $clusters, $cluster_start, $cluster_end) = cluster_transcripts($trans);
+    return ($clusters, $label);
+}
+
 ###########################################
 
 sub print_Transcript{
@@ -177,25 +194,19 @@ sub print_Transcript{
     }
 }
 
-sub print_Exons{
-    my ($t) = @_;
-    my @exons = get_exons($t);
-    foreach my $e (@exons){
-	my $p = join "\t", ("INFO:", "Exon:", @$e);
-	print $p."\n";
-    }
-}
 
 sub transcript_start{
     my ($t) = @_;
-    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
+    # exon: chromosome, source, feature, start, end, score, strand, frame, transcript ID, gene ID                                                           
+    my @e = sort {$a->[3] <=> $b->[3]} @{$t};
     return $e[0]->[1];
 }
 
 sub transcript_end{
     my ($t) = @_;
-    my @e = sort {$a->[1] <=> $b->[1]} @{$t};
-    return $e[-1]->[2];
+    # exon: chromosome, source, feature, start, end, score, strand, frame, transcript ID, gene ID                                                          
+    my @e = sort {$a->[3] <=> $b->[3]} @{$t};
+    return $e[-1]->[4];
 }
 
 ###########################################

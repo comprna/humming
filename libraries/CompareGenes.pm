@@ -75,7 +75,8 @@ sub transcript_length{
     my @exons = get_exons($t);
     my $l=0;
     foreach my $e (@exons){
-	my ($chr, $start, $end, $strand, $trans_id, $gene_id) = @$e;
+	#exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                                 
+	my ($chr, $source, $feature, $start, $end, $score, $strand, $frame, $trans_id, $gene_id) = @$e;
 	$l += ($end - $start + 1);
     }
     return $l;
@@ -83,7 +84,8 @@ sub transcript_length{
 
 sub get_exons{
     my ($t) = @_;
-    return sort {$a->[1] <=> $b->[1]} @{$t};
+    #chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                                         
+    return sort {$a->[3] <=> $b->[3]} @{$t};
 }
 
 
