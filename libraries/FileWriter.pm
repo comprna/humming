@@ -40,6 +40,58 @@ sub write_GTF{
 }
 
 
+# BED12                                                                                                                                                      
+#                                                                                                                                                            
+# 1  chr                                                                                                                                                     
+# 2  chr_start (0 based)                                                                                                                                     
+# 3  chr_end                                                                                                                                                 
+# 4  name                                                                                                                                                    
+# 5  score                                                                                                                                                   
+# 6  strand                                                                                                                                                  
+# 7  thick_start                                                                                                                                             
+# 8  thick_end                                                                                                                                               
+# 9  ItemGBgroup ID / Parent=ID.                                                                                                                             
+# 10 block_count                                                                                                                                             
+# 11 block_sizes                                                                                                                                             
+# 12 block_starts (relative to chr_start)  
+sub write_BED12{
+    my ($trans, $output) = @_;
+
+    open(OUT,">$output") or die("cannot open file $output for writing");
+    foreach my $t (@$trans){
+	my @exons    = get_sorted_exons($t);
+	my $t_chr    = $exons[0]->[0];
+	my $t_start  = $exons[0]->[3] - 1;
+	my $t_end    = $exons[-1]->[4];
+	my $t_strand = $exons[0]->[6];
+	my $t_score  = 0;
+	my $t_id     = $exons[0]->[8];
+	my $g_id     = $exons[0]->[9];
+	my $name     = $t_id;
+	$name = $g_id.":".$t_id if ($t_id eq $g_id);
+	my $block_count = scalar(@exons);
+	my @block_starts;
+	my @block_sizes;
+	my $block_start = 0;
+        foreach my $e (get_sorted_exons($t)){
+	    my ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id) = @$e;
+	    my $t_score = $t_score + $score;
+            my $size = $end - $start + 1;
+	    push(@block_sizes, $size);
+	    push(@block_starts, $block_start);
+	    $block_start = $block_start + $size;
+	}
+	push(@block_starts, $block_start);		
+	my $block_sizes  = join ",",@block_sizes;
+	my $block_starts = join ",",@block_starts;
+	$t_score = $t_score / $block_count;
+	my $s = join "\t", ($t_chr, $t_start, $t_end, $name, $t_score, $t_strand, $t_start, $t_end, "0", $block_count, $block_sizes, $block_starts);
+	print OUT $s."\n";
+    }
+}
+
+
+
 sub write_GFF{
     my ($trans, $output) = @_;
 
@@ -78,8 +130,6 @@ sub write_genes_in_GTF{
 	}
     }
 }
-
-
 
 # 1  Query sequence name
 # 2  Query sequence length
@@ -125,7 +175,7 @@ sub write_PAF{
 	my $map_quality     = "NA";
 	my $target_name     = $exons[0]->[0];
 
-	my $s = "\t", ($query_name,  $query_length,  $query_start,  $query_end, $relative_strand,
+	my $s = join "\t", ($query_name,  $query_length,  $query_start,  $query_end, $relative_strand,
 		       $target_name, $target_length, $target_start, $target_end,
 		       $query_length, $align_length, $map_quality, $cigar);
 	print OUT $s."\n";
