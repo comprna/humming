@@ -13,7 +13,7 @@ sub write_file{
         return write_GFF($trans, $output);
     }
     elsif( $format eq "BED12"){
-        return write_BD12($trans, $output);
+        return write_BED12($trans, $output);
     }
     elsif( $format eq "PAF"){
         return write_PAF($trans, $output);
@@ -27,17 +27,36 @@ sub write_GTF{
     open(OUT,">$output") or die("cannot open file $output for writing");
     foreach my $t (@$trans){
 	foreach my $e (get_sorted_exons($t)){
-	    my ($chr, $start, $end, $strand, $t_id, $g_id) = @$e;
-	    my $source  = "humming";
-	    my $feature = "exon";
-	    my $frame   = ".";
-	    my $score   = 100;
-	    my $col9    = "gene_id \"".$g_id."\"; transcript_id \"".$t_id."\";";
-	    my $s = join "\t", ($chr, $source, $feature, $start, $end, $score, $strand, $frame, $col9);
+	    my ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id) = @$e;
+	    $db      = "humming" unless $db;;
+	    $feature = "exon" unless $feature;
+	    $frame   = "." unless $frame;
+	    $score   = 100 unless $score;
+	    my $col9  = "gene_id \"".$g_id."\"; transcript_id \"".$t_id."\";";
+	    my $s = join "\t", ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $col9);
 	    print OUT $s."\n";
 	}
     }
 }
+
+
+sub write_GFF{
+    my ($trans, $output) = @_;
+    open(OUT,">$output") or die("cannot open file $output for writing");
+    foreach my $t (@$trans){
+	foreach my $e (get_sorted_exons($t)){
+	    my ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id) = @$e;
+	    $db      = "humming" unless $db;;
+	    $feature = "exon" unless $feature;
+	    $frame   = "." unless $frame;
+	    $score   = 100 unless $score;
+	    my $col9    = $t_id;
+	    my $s = join "\t", ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $col9);
+	    print OUT $s."\n";
+	}
+    }
+}
+
 
 
 # BED12                                                                                                                                                      
@@ -68,7 +87,7 @@ sub write_BED12{
 	my $t_id     = $exons[0]->[8];
 	my $g_id     = $exons[0]->[9];
 	my $name     = $t_id;
-	$name = $g_id.":".$t_id if ($t_id eq $g_id);
+	$name = $g_id.":".$t_id unless ($t_id eq $g_id);
 	my $block_count = scalar(@exons);
 	my @block_starts;
 	my @block_sizes;
@@ -77,36 +96,15 @@ sub write_BED12{
 	    my ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id) = @$e;
 	    my $t_score = $t_score + $score;
             my $size = $end - $start + 1;
+	    $block_start = $start - $t_start - 1;
 	    push(@block_sizes, $size);
 	    push(@block_starts, $block_start);
-	    $block_start = $block_start + $size;
 	}
-	push(@block_starts, $block_start);		
 	my $block_sizes  = join ",",@block_sizes;
 	my $block_starts = join ",",@block_starts;
 	$t_score = $t_score / $block_count;
 	my $s = join "\t", ($t_chr, $t_start, $t_end, $name, $t_score, $t_strand, $t_start, $t_end, "0", $block_count, $block_sizes, $block_starts);
 	print OUT $s."\n";
-    }
-}
-
-
-
-sub write_GFF{
-    my ($trans, $output) = @_;
-
-    open(OUT,">$output") or die("cannot open file $output for writing");
-    foreach my $t (@$trans){
-	foreach my $e (get_sorted_exons($t)){
-	    my ($chr, $start, $end, $strand, $t_id, $g_id) = @$e;
-	    my $source  = "humming";
-	    my $feature = "exon";
-	    my $frame   = ".";
-	    my $score   = 100;
-	    my $col9    = $t_id;
-	    my $s = join "\t", ($chr, $source, $feature, $start, $end, $score, $strand, $frame, $col9);
-	    print OUT $s."\n";
-	}
     }
 }
 
