@@ -39,8 +39,8 @@ sub merge_transcripts{
 		my @e_a = @$t_a;
 		my @e_b = @$t_b;
 		# chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
-		my $t_id_a = $e_a->[8];
-		my $t_id_b = $e_b->[8];
+		my $t_id_a = $e_a[8];
+		my $t_id_b = $e_b[8];
 		push( @{$t_id{$t_a}}, $t_id_a);
 		push( @{$t_id{$t_a}}, $t_id_b);
 		push( @{$t_id{$t_b}}, $t_id_a);
@@ -63,7 +63,7 @@ sub merge_transcripts{
     foreach my $t (keys %t_id){
 	my @ids =  @{$t_id{$t}};
 	my %tmp;
-	foreach $id (@ids){
+	foreach my $id (@ids){
 	    $tmp{$id}++;
 	}
 	my @uniq_ids = sort {$a cmp $b} keys %tmp;
@@ -78,7 +78,7 @@ sub transcript_length{
     my ($t) = @_;
     my $l=0;
     foreach my $e (@$t){
-	#chromosome, source, feature, start, end, score, strand, frame, and transcript ID
+	#exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
         my ($chr, $source, $feature, $start, $end, $score, $strand, $frame, $trans_id, $gene_id) = @$e;
         $l += ($end - $start + 1);
     }
@@ -87,8 +87,24 @@ sub transcript_length{
 
 sub get_sorted_exons{
     my ($t) = @_;
-    #chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
+    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id
     return sort {$a->[3] <=> $b->[3]} @{$t};
+}
+
+
+sub get_sorted_introns{
+    my ($t) = @_;
+    #exon: chromosome, source, feature, start, end, score, strand, frame, t_id, g_id                                                                       
+    my @exons = sort {$a->[3] <=> $b->[3]} @{$t};
+    my @introns;
+    for(my $i=0; $i<scalar(@exons)-1; $i++){
+	my $intron_start = $exons[$i]->[4] + 1;
+	my $intron_end   = $exons[$i+1]->[3] - 1;
+	my $intron       = [ $exons[$i]->[0], $exons[$i]->[1], "intron", $intron_start, $intron_end, 
+			     $exons[$i]->[5], $exons[$i]->[6], $exons[$i]->[7], $exons[$i]->[8], $exons[$i]->[9] ];
+	push( @introns, $intron);
+    }
+    return \@introns;
 }
 
 sub test_merge{
