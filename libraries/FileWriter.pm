@@ -32,6 +32,7 @@ sub write_GTF{
 	    $feature = "exon" unless $feature;
 	    $frame   = "." unless $frame;
 	    $score   = 100 unless $score;
+	    $score   = 100 if $score eq ".";
 	    my $col9  = "gene_id \"".$g_id."\"; transcript_id \"".$t_id."\";";
 	    my $s = join "\t", ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $col9);
 	    print OUT $s."\n";
@@ -50,6 +51,7 @@ sub write_GFF{
 	    $feature = "exon" unless $feature;
 	    $frame   = "." unless $frame;
 	    $score   = 100 unless $score;
+	    $score   = 100 if $score eq ".";
 	    my $col9    = $t_id;
 	    my $s = join "\t", ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $col9);
 	    print OUT $s."\n";
@@ -94,6 +96,8 @@ sub write_BED12{
 	my $block_start = 0;
         foreach my $e (get_sorted_exons($t)){
 	    my ($chr, $db, $feature, $start, $end, $score, $strand, $frame, $t_id, $g_id) = @$e;
+	    $score   = 100 unless $score;
+	    $score   = 100 if $score eq ".";
 	    my $t_score = $t_score + $score;
             my $size = $end - $start + 1;
 	    $block_start = $start - $t_start - 1;
