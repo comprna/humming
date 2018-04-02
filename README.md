@@ -148,7 +148,20 @@ chr14 Ensembl exon  73753818  73754022  0.0 - . ENST00000000001.1
 
 ```
 
-The columns correspond to: `chromosome, source, feature, start, end, score, strand, frame, and transcript ID`.
+
+#### BED12
+
+
+The BED12 is an extension of the BED format to encapsulate multiple exons per line:
+```
+chr21   37085436        37105240        ENSG00000230794.1:ENST00000412240.1     0       -       37085436        37105240        0       2       309,40  0,19764
+chr21   35445848        35515334        ENSG00000243927.1:ENST00000477091.1     0       +       35445848        35515334        0       5       197,74,23,140,627       0,29285,29947,51792,68859
+chr21   38309513        38362524        ENSG00000159267.10:ENST00000427746.1    0       -       38309513        38362524        0       5       179,163,122,135,67      0,1618,10952,24822,52944
+```
+
+The columns correspond to
+`chromosome, chr_start (0 based), chr_end, name, score, strand, thick_start, thick_end, ItemGBGroup ID /Parent ID, block_count, block_sizes, block_starts (relative to chr_start)`
+
 
 #### PAF
 
