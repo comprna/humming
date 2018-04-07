@@ -181,7 +181,7 @@ sub read_BED12{
 # 13 SAM-like output
 sub read_PAF{
     my ($file, $verbose, $distance, $deletion_size) = @_;
-    $verbose = 1;
+    #$verbose = 1;
     my $trans;
     my %count;    
     open(IN,"<$file") or die("cannot open $file");
