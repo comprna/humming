@@ -4,18 +4,18 @@ use strict;
 use libraries::Cluster;
 
 sub read_file{
-    my ($file, $type, $v) = @_;
+    my ($file, $type, $verbose, $distance) = @_;
     if ($type eq "GTF"){
-	return read_GTF($file, $v);
+	return read_GTF($file, $verbose);
     }
     elsif( $type eq "GFF"){
-	return read_GFF($file, $v);
+	return read_GFF($file, $verbose);
     }
     elsif( $type eq "BED12"){
-	return read_BED12($file, $v);
+	return read_BED12($file, $verbose);
     }
     elsif( $type eq "PAF"){
-	return read_PAF($file, $v);
+	return read_PAF($file, $verbose, $distance);
     }
 }
 
@@ -180,7 +180,7 @@ sub read_BED12{
 # 12 Mapping quality (0-255; 255 for missing)    
 # 13 SAM-like output
 sub read_PAF{
-    my ($file, $distance, $verbose) = @_;
+    my ($file, $verbose, $distance) = @_;
     $verbose = 1;
     my $trans;
     my %count;    
