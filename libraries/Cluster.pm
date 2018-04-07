@@ -287,7 +287,7 @@ sub transcript_start{
     my ($t) = @_;
     # exon: chromosome, source, feature, start, end, score, strand, frame, transcript ID, gene ID                                                           
     my @e = sort {$a->[3] <=> $b->[3]} @{$t};
-    return $e[0]->[1];
+    return $e[0]->[3];
 }
 
 sub transcript_end{
