@@ -1,6 +1,7 @@
 package FileReader;
 
 use strict;
+use libraries::Cluster;
 
 sub read_file{
     my ($file, $type, $v) = @_;
@@ -179,29 +180,30 @@ sub read_BED12{
 # 12 Mapping quality (0-255; 255 for missing)    
 # 13 SAM-like output
 sub read_PAF{
-    my ($file, $verbose) = @_;
+    my ($file, $distance, $verbose) = @_;
+    $verbose = 1;
     my $trans;
     my %count;    
     open(IN,"<$file") or die("cannot open $file");
+    my @ranges;
     while(<IN>){
         chomp;  
-	my ($query_name,  $query_length,  $query_start,  $query_end, $relative_strand,
-	    $target_name, $target_length, $target_start, $target_end,
-	    $num_of_matches, $align_length, $map_quality, @sam_fields) = split /\t/, $_;
+	my ($query_name,     $query_length,  $query_start,  $query_end, $relative_strand,
+	    $target_name,    $target_length, $target_start, $target_end,
+	    $num_of_matches, $align_length,  $map_quality, @sam_fields ) = split /\t/, $_;
 	
 	$count{$query_name}++;
 	print "reading $query_name $target_name\n" if $verbose;
 	my $cigar;
 	foreach my $f (@sam_fields){
+	    #print STDERR $f."\n";
 	    # get cigar string
 	    if ($f =~/cg:Z:(.*)/){
 		$cigar = $1;
 		print "getting cigar $cigar\n" if $verbose;
 	    }
 	}
-	
-	
-	# transform to 1-based
+      	# transform to 1-based
 	$query_start++;
 	$query_end++;
 	$target_start++;
@@ -209,47 +211,117 @@ sub read_PAF{
 	
 	# parse cigar:
 	my $blocks = parse_cigar($cigar, $verbose);
-	my @exons; 
-	my $exon_start = $target_start;
-	my $exon_end   = $target_start;
-	my %added;
-	foreach my $block (@$blocks){
-	    my ($size, $id) = @$block;
-	    # grow each exon
-	    if ($id eq "M" || $id eq "I" || ($id eq "D" && $size < 25) ){
-		$exon_end = $exon_end + $size - 1;
+
+	# create blocks
+	my $new_blocks;
+	my $new_block = [];
+	push( @$new_blocks, $new_block);
+	my $count = 0;	
+	foreach my $block ( @$blocks ){
+            my ($size, $id) = @$block;
+	    if ($count == 0){
+		# Create the first block
+		push( @$new_block, [$size, "exon"] );
+		$count++;
 	    }
-	    # until finding an intron
+	    elsif ( $id eq "M" || $id eq "I" || ($id eq "D" && $size < 25) ){
+		push( @$new_block, [$size, "exon"] );
+		$count++;
+	    }
 	    elsif( $id eq "N" || ($id eq "D" && $size >= 25) ){
-		push(@exons, [$exon_start, $exon_end]);
-		$added{$exon_start}{$exon_end}++;
-		$exon_start = $exon_end + $size + 1;
-		$exon_end   = $exon_start;
+		$new_block = [];
+		push( @$new_blocks, $new_block );
+		push( @$new_block, [$size, "intron"] );
+		$new_block = [];
+		push( @$new_blocks, $new_block );
+		$count++;
 	    }
 	}
-	# add the last exons
-	push(@exons, [$exon_start, $exon_end]) unless $added{$exon_start}{$exon_end};
-		
-	foreach my $exon (@exons){
-	    # chromosome, source, feature, start, end, score, strand, frame, transcript_id, $gene_id
-	    my $t_id;
-	    if ($count{$query_name} > 1){
-		$t_id = $query_name."_".$count{$query_name};
+	
+	# we create the new blocks
+	my $really_new_blocks;
+	foreach my $new_block (@$new_blocks){
+	    my $size = 0;
+	    my $id;
+	    foreach my $block (@$new_block){
+		my ($this_size, $this_id) = @$block;
+		$size = $size + $this_size;
+		$id = $this_id;
 	    }
-	    my $g_id = $t_id;
-	    my $score = $align_length / $query_length;
-	    my $e = [$target_name, "hum", "exon", $exon_start, $exon_end, $score, $relative_strand, ".", $t_id, $g_id];
-	    print "storing exon: $target_name, $exon_start, $exon_end, $relative_strand, $t_id, $g_id\n" if $verbose;
-	    push( @{$trans->{$t_id}}, $exon );
+	    push( @$really_new_blocks, [$size, $id] );
+	}
+	
+	# we create exons if there are multiple blocks
+	if (scalar(@$really_new_blocks) == 1){
+	    # only one exon
+	    push( @ranges, [$query_name,  $query_length,  $query_start, $query_end, $relative_strand,
+			    $target_name, $target_length, $target_start, $target_end] ); 
+	}
+	#   ############## 
+	#   eeeeeIIIIIeeee
+	elsif( scalar(@$really_new_blocks) > 1){
+	    my $q_start = $query_start;
+	    my $t_start = $target_start;
+	    my $q_end;
+	    my $t_end;
+	    foreach my $really_new_block (@$really_new_blocks){
+		my ($block_size, $block_id) = @$really_new_block;
+		if ($block_id eq "exon"){
+		    $q_end = $q_start + $block_size - 1;
+		    $t_end = $t_start + $block_size - 1;
+		    my $range = [$query_name,  $query_length,  $q_start, $q_end, $relative_strand,
+				 $target_name, $target_length, $t_start, $t_end];
+		    push( @ranges, $range );
+		    $q_start = $q_end + 1;
+		    $t_start = $t_end + 1;
+		}
+		elsif( $block_id eq "intron"){
+		    $t_start = $t_start + $block_size;
+		}
+	    }
 	}
     }
-    my @transcripts;
-    foreach my $id (keys %$trans ){
-	my @e = @{$trans->{$id}};
-	my $t = \@e;
-	push( @transcripts, $t);
+    
+    ######################################################
+    # now we need to cluster nearby ranges (exons) into "transcripts":
+    # [$query_name,  $query_length,  $q_start, $q_end, $relative_strand, $target_name, $target_length, $t_start, $t_end];
+    # First separate ranges by chromosome and strand;
+    my %ranges;
+    foreach my $range (@ranges){
+	my $range_chr    = $range->[5];
+	my $range_strand = $range->[4]; 
+	push( @{$ranges{$range_chr}{$range_strand}}, $range );
     }
-    return \@transcripts;
+    # Now cluster by strand and chromosome
+    foreach my $range_chr ( keys %ranges ){
+	foreach my $range_strand ( keys %{$ranges{$range_chr}} ){
+	    my ($clusters, $clusters_start, $clusters_end ) = 
+		Cluster::cluster_by_proximity( $ranges{$range_chr}{$range_strand}, 7, 8, $distance, $verbose);
+
+	    # each cluster is a candidate transcript
+	    my %seen;
+	    my $count2 = 2;    
+	    foreach my $cluster (@$clusters){
+		my $append = "";
+		my $this_trans;
+		if ( $seen{$cluster->[0]->[0]} ){
+		    $append = "_".$count2;
+		    $count2++;
+		}
+		foreach my $range (@$cluster){
+		    my ($query_name,  $query_length,  $q_start, $q_end, $relative_strand, $target_name, $target_length, $t_start, $t_end) = @$range;
+		    # build an exon
+		    # [$chr, db, feature, $exon_start, $exon_end, $score, $strand, ".", $t_id, $g_id];
+		    my $q_name = $query_name.$append;
+		    my $e = [$target_name, "hum", "exon",$t_start, $t_end, "0", $relative_strand, ".", $query_name, $query_name]; 
+		    push( @$this_trans, $e );
+		    $seen{$query_name}++;
+		}
+		push( @$trans, $this_trans );
+	    }
+	}
+    }
+    return $trans;
 }    
 
 #CIGAR  CIGAR strings ("Compact Idiosyncratic Gapped Alignment Report"),
@@ -271,6 +343,7 @@ sub read_PAF{
 #
 sub parse_cigar {
     my ($c, $verbose) = @_;
+    print "parsing $c\n" if $verbose;
     my @items = ($c =~ /(\d*[MIDNSHP=X])/g);
     my @blocks;
     foreach my $item (@items){
