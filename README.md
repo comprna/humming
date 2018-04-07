@@ -152,7 +152,7 @@ chr14 Ensembl exon  73753818  73754022  0.0 - . ENST00000000001.1
 #### BED12
 
 
-The BED12 is an extension of the BED format to encapsulate multiple exons per line:
+The BED12 is an extension of the BED format to describe a transcript (one or more exons) per line:
 ```
 chr21   37085436        37105240        ENSG00000230794.1:ENST00000412240.1     0       -       37085436        37105240        0       2       309,40  0,19764
 chr21   35445848        35515334        ENSG00000243927.1:ENST00000477091.1     0       +       35445848        35515334        0       5       197,74,23,140,627       0,29285,29947,51792,68859
@@ -165,14 +165,36 @@ The columns correspond to
 
 #### PAF
 
-The PAF format is not yet supported - `under development`
+The Pairwise Alignment Format (PAF) describes the mapping of a query sequence to a target sequence (https://github.com/lh3/miniasm/blob/master/PAF.md).
+
+This is an example of PAF output from Minimap2: 
+
+```
+d63d83e8-630a-4ebb-bc98-b9a058b81a77    1190    47      1151    -       NC_000017.11    83257441        43525694        43526760        939     1163    60      tp:A:P  cm:i:48 s1:i:334        s2:i:0  NM:i:224        ms:i:477        AS:i:477        nn:i:0  cg:Z:18M1I14M5I36M2I11M1D14M2I6M1I4M2I2M4I4M2I21M2I7M2I4M3D11M1I8M3I7M1I9M1D4M2D2M1D10M3D1M2D10M1I12M7I34M2I16M1I5M1D16M1D5M1D5M1I5M1I2M1I14M1I7M2I11M1D6M1I24M2D17M1I4M1I32M1D3M2I10M2I20M1D3M4I8M1D27M2I3M1D13M1D11M1D31M2D53M4I4M2I4M1I13M1D25M8D4M1D19M6I8M1D4M1D18M2I4M1I18M1D6M1D21M1I1M1I12M1I15M2I15M4I12M2D10M1D20M1I14M1D25M1I7M1D15M2D12M5D6M3D8M2I8M2I12M2I11M1D7M1D4M2I3M1I4M1I8M1D7M2I23M
+```
+
+The columns correspond to
+
+1  Query sequence name
+2  Query sequence length                                                                                                                                
+3  Query start (0-based)                                                                                                                                
+4  Query end (0-based)                                                                   
+5  Relative strand: "+" or "-"                                                                                                               
+6  Target sequence name                                                                                                                                 
+7  Target sequence length                                                                                                                               
+8  Target start on original strand (0-based)                                                                                                            
+9  Target end on original strand (0-based)                                                                                                              
+10 Number of sequence matches                                                                                                                           
+11 Alignment block length (total number of sequence matches, mismatches, insertions and deletions in the alignment)                                     
+12 Mapping quality (0-255; 255 for missing)                                                                                                             
+13 SAM-like output (key-value pairs) cg:Z: corresponds to the cigar string (see https://samtools.github.io/hts-specs/SAMv1.pdf)                 
 
 
 ----------------------------
-## Citation
+## References
 ----------------------------
 
-Humming code is based on the code from 
+Humming code is based on the algorithms used in this publication
 
 Eyras E, Caccamo M, Curwen V, Clamp M. ESTGenes: alternative splicing from
 ESTs in Ensembl. Genome Res. 2004 May;14(5):976-87. PMID: 15123595;
