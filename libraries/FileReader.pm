@@ -288,40 +288,55 @@ sub read_PAF{
     
     ######################################################
     # now we need to cluster nearby ranges (exons) into "transcripts":
-    # [$query_name,  $query_length,  $q_start, $q_end, $relative_strand, $target_name, $target_length, $t_start, $t_end];
+    # range: [$query_name,  $query_length,  $q_start, $q_end, $relative_strand, $target_name, $target_length, $t_start, $t_end];
     # First separate ranges by chromosome and strand;
     my %ranges;
+    my %chrs;
+    my %strands;
+    my %qnames;
+    #print "obtained ".scalar(@ranges)." ranges\n";
     foreach my $range (@ranges){
 	my $range_chr    = $range->[5];
 	my $range_strand = $range->[4]; 
-	push( @{$ranges{$range_chr}{$range_strand}}, $range );
+	my $range_qname  = $range->[0];
+	#print "storing range in $range_chr $range_strand\n";
+	push( @{$ranges{$range_chr}{$range_strand}{$range_qname}}, $range );
+	$chrs{$range_chr}++;
+	$strands{$range_strand}++;
+	$qnames{$range_qname}++;
     }
     # Now cluster by strand and chromosome
-    foreach my $range_chr ( keys %ranges ){
-	foreach my $range_strand ( keys %{$ranges{$range_chr}} ){
-	    my ($clusters, $clusters_start, $clusters_end ) = 
-		Cluster::cluster_by_proximity( $ranges{$range_chr}{$range_strand}, 7, 8, $distance, $verbose);
-
-	    # each cluster is a candidate transcript
-	    my %seen;
-	    my $count2 = 2;    
-	    foreach my $cluster (@$clusters){
-		my $append = "";
-		my $this_trans;
-		if ( $seen{$cluster->[0]->[0]} ){
-		    $append = "_".$count2;
-		    $count2++;
+    my %seen;
+    foreach my $range_chr ( keys %chrs ){
+	foreach my $range_strand ( keys %strands ){
+	    foreach my $range_qname  ( keys %qnames ){
+		next unless $ranges{$range_chr}{$range_strand}{$range_qname};
+		my @ranges_list = @{$ranges{$range_chr}{$range_strand}{$range_qname}};
+		my ($clusters, $clusters_start, $clusters_end ) = Cluster::cluster_by_proximity( \@ranges_list, 7, 8, $distance, $verbose);
+		
+		# each cluster is a candidate transcript
+		foreach my $cluster (@$clusters){
+		    my $append = "";
+		    my $this_trans;
+		    my @these_ranges = @$cluster;
+		    my $this_query_name = $these_ranges[0]->[0];
+		    #print "seen $this_query_name\n";
+		    $seen{$this_query_name}++;
+		    my $q_name = $this_query_name."_".$seen{$this_query_name};
+		    
+		    #if ( $seen{$this_query_name} ){
+		    #    $append = "_".$seen{$this_query_name};
+		    #    #print "seen ".$this_query_name."\n";
+		    #}
+		    foreach my $range (@these_ranges){
+			my ($query_name,  $query_length,  $q_start, $q_end, $relative_strand, $target_name, $target_length, $t_start, $t_end) = @$range;
+			# build an exon
+			# [$chr, db, feature, $exon_start, $exon_end, $score, $strand, ".", $t_id, $g_id];
+			my $e = [$target_name, "hum", "exon",$t_start, $t_end, "0", $relative_strand, ".", $q_name, $q_name]; 
+			push( @$this_trans, $e );
+		    }
+		    push( @$trans, $this_trans );
 		}
-		foreach my $range (@$cluster){
-		    my ($query_name,  $query_length,  $q_start, $q_end, $relative_strand, $target_name, $target_length, $t_start, $t_end) = @$range;
-		    # build an exon
-		    # [$chr, db, feature, $exon_start, $exon_end, $score, $strand, ".", $t_id, $g_id];
-		    my $q_name = $query_name.$append;
-		    my $e = [$target_name, "hum", "exon",$t_start, $t_end, "0", $relative_strand, ".", $query_name, $query_name]; 
-		    push( @$this_trans, $e );
-		    $seen{$query_name}++;
-		}
-		push( @$trans, $this_trans );
 	    }
 	}
     }
