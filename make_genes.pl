@@ -62,7 +62,7 @@ my $trans = FileReader::read_file($file, $format);
 my ($genes, $label) = Gene::make_genes($trans, $constraint, $reuse);
 
 # output genes
-FileWriter::write_GTF($genes, $label, $output);
+FileWriter::write_genes_in_GTF($genes, $label, $output);
 
 
 1;
