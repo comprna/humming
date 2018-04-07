@@ -224,11 +224,15 @@ sub read_PAF{
 		push( @$new_block, [$size, "exon"] );
 		$count++;
 	    }
-	    elsif ( $id eq "M" || $id eq "I" || ($id eq "D" && $size < 25) ){
+	    # any cigar block that is a Match, Insertion, or a Deletion smaller than $deletion_siz
+	    # is considered an exon block
+	    my $deletion_size = 25
+	    elsif ( $id eq "M" || $id eq "I" || ($id eq "D" && $size < $deletion_size) ){
 		push( @$new_block, [$size, "exon"] );
 		$count++;
 	    }
-	    elsif( $id eq "N" || ($id eq "D" && $size >= 25) ){
+	    # N blocks and Deletions larger (or equal) than $deltion_size are considered as introns
+	    elsif( $id eq "N" || ($id eq "D" && $size >= $deletion_size) ){
 		$new_block = [];
 		push( @$new_blocks, $new_block );
 		push( @$new_block, [$size, "intron"] );
@@ -238,7 +242,8 @@ sub read_PAF{
 	    }
 	}
 	
-	# we create the new blocks
+	# we create the new blocks by putting into a single
+	# one the grouped blocks
 	my $really_new_blocks;
 	foreach my $new_block (@$new_blocks){
 	    my $size = 0;
