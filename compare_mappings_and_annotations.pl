@@ -6,13 +6,16 @@ use libraries::Cluster;
 use libraries::FileReader;
 use libraries::CompareJunctions;
 use libraries::CompareGenes;
+use libraries::CompareTranscripts;
 use Getopt::Long;
 
-my $verbose  = 0;
-my $verbose2 = 0;
-my $verbose3 = 0;
+my ($file_pred, $file_ann, $format_pred, $format_ann, $help, $distance, $verbose, $del_size);
 
-my ($file_pred, $file_ann, $format_pred, $format_ann, $help);
+# default distance between matches in PAF file to join them into a transcript                                                          
+$distance = 100000;
+
+# default size of a deletion in the cigar string to be considered a potential intron                                                       
+$del_size = 25;
 
 my ($compare_junctions, $compare_genes, $compare_transcripts);
 
@@ -24,6 +27,8 @@ my $result = GetOptions(
     'u|format_ann=s' => \$format_ann,
     'j|junctions'    => \$compare_junctions,
     't|transcripts'  => \$compare_transcripts,
+    'd|distance=i'   => \$distance,
+    's|del_size=i'   => \$del_size,
     'g|genes'        => \$compare_genes,
     'h|help'         => \$help
     );
@@ -48,6 +53,36 @@ unless ( $compare_junctions || $compare_transcripts || $compare_genes ){
     print_usage();
 }
 
+# read GFF lines in annotation file 1
+# store all transcripts and all exons in each transcript
+my $trans_ann = FileReader::read_file($file_ann, $format_ann, $verbose, $distance, $del_size);
+
+# read GFF lines in annotation file 2
+# store all transcripts and all exons in each transcript
+my $trans_pred = FileReader::read_file($file_pred, $format_pred, $verbose, $distance, $del_size);
+
+# $trans_ann and $trans_pred are two pointers two lists (array-refs)
+# that hold the transcripts. Each transcript is a pointer to a list (arrayref) of exons, 
+# where each exon is a pointer to a list (arrayref)
+# of exon properties read from the GTF/GFF: $exon : [$chr, $start, $end, $strand, $t_id, $g_id];
+
+#print "found ".scalar(@$trans_ann)." transcripts in the annotation\n";
+#print "found ".scalar(@$trans_pred)." transcripts in the prediction\n";
+
+
+if ($compare_junctions){
+    CompareJunctions::compare_junctions($trans_ann,$trans_pred);
+}
+
+if ($compare_genes){
+     CompareGenes::compare_genes($trans_ann,$trans_pred);
+}
+
+if ($compare_transcripts){
+    CompareTranscripts::compare_transcripts_directional($trans_ann,$trans_pred);
+}
+
+
 sub print_usage{
     print STDERR "\n";
     print STDERR "Usage: perl compare_mappings_and_annotations.pl -a <annotations> -p <predictions> -f <format-annotations> -u <format-predictions> < -j | -t | -g >\n";
@@ -59,39 +94,10 @@ sub print_usage{
     print STDERR "-j | --junctions:\tCompare splice sites and exon-exon junctions\n";
     print STDERR "-t | --transcripts:\tCompare transcripts. It matches transcripts within the same loci\n";
     print STDERR "-g | --genes:\t\tCompare gene loci (genome extension in the same strand that produce one or more transcripts)\n";
+    print STDERR "-d | --distance:   Distance between matches in cigar string file to join them into a transcript (default: 100000)\n";
+    print STDERR "-s | --del_size:   Smallest size of a deletion in the cigar string to be considered a possible intron (detault: 25)\n";
     print STDERR "-h | --help:\t\tPrint this help\n";
     print STDERR "\n";
     exit(0);
-}
-
-
-my %strand;
-my %chr;
-
-# read GFF lines in annotation file 1
-# store all transcripts and all exons in each transcript
-my $trans_ann = FileReader::read_file($file_ann, $format_ann, $verbose);
-
-# read GFF lines in annotation file 2
-# store all transcripts and all exons in each transcript
-my $trans_pred = FileReader::read_file($file_pred, $format_pred, $verbose);
-
-# $trans_ann and $trans_pred are two dictionaries (hashes)
-# that hold for each transcript_id (from the 9th column of the GTF/GFF file)
-# the pointer to a list (arrayref) of exons, where each exon is a pointer to a list (arrayref)
-# of exon properties: $exon : [$chr, $start, $end, $strand, $t_id, $g_id];
-
-if ($compare_junctions){
-    CompareJunctions::compare_junctions($trans_ann,$trans_pred);
-}
-
-if ($compare_genes){
-     CompareGenes::compare_genes($trans_ann,$trans_pred);
-}
-
-if ($compare_transcripts){
-    print STDERR "Operation compare genes not yet in place\n";
-    exit(0);
-    CompareTranscripts::compare_transcripts($trans_ann,$trans_pred);
 }
 
