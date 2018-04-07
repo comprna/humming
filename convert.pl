@@ -41,6 +41,14 @@ unless( ($format_in eq "GFF" || $format_in eq "GTF" || $format_in eq "BED12" || 
     print_usage();
 }
 
+
+# read input
+my $trans = FileReader::read_file($file, $format_in, $verbose, $distance, $del_size);
+
+# write output
+FileWriter::write_file($trans, $output, $format_out);
+
+
 sub print_usage{
     print STDERR "\n";
     print STDERR "Usage: perl convert.pl -i <input> -f <format_in> -o <output> -u <format_out>\n";
@@ -57,11 +65,3 @@ sub print_usage{
     exit(0);
 }
 
-
-# read input
-my $trans = FileReader::read_file($file, $format_in, $verbose, $distance, $del_size);
-
-# write output
-FileWriter::write_file($trans, $output, $format_out);
-
-1;
