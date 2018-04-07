@@ -202,9 +202,6 @@ sub get_junctions{
     # we get the exons
     my @exons = get_sorted_exons($t);
 
-    # we extract sorted exons
-    my @sorted_exons = sort {$a->[3] <=> $b->[3]} @exons;
-
     # extract junctions
     my @junctions;
     for (my $i=0; $i<scalar(@exons) - 1; $i++){
@@ -281,9 +278,6 @@ sub get_3ss_splice_sites{
 
     # strand
     my $strand = $exons[0]->[6];
-
-    # we extract sorted exons
-    my @sorted_exons = sort {$a->[1] <=> $b->[1]} @exons;
 
     # extract junctions
     my @sites;
