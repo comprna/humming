@@ -62,18 +62,18 @@ sub write_GFF{
 
 
 # BED12                                                                                                                                                      
-#                                                                                                                                                            
-# 1  chr                                                                                                                                                     
-# 2  chr_start (0 based)                                                                                                                                     
-# 3  chr_end                                                                                                                                                 
-# 4  name                                                                                                                                                    
-# 5  score                                                                                                                                                   
-# 6  strand                                                                                                                                                  
-# 7  thick_start                                                                                                                                             
-# 8  thick_end                                                                                                                                               
-# 9  ItemGBgroup ID / Parent=ID.                                                                                                                             
-# 10 block_count                                                                                                                                             
-# 11 block_sizes                                                                                                                                             
+#
+# 1  chr                                                                                                                                        
+# 2  chr_start (0 based)                                                                                                                           
+# 3  chr_end                                                                                                                                        
+# 4  name                                                                                                                                             
+# 5  score                                                                                                                                          
+# 6  strand                                                                                                                                           
+# 7  thick_start                                                                                                                                    
+# 8  thick_end                                                                                                                                      
+# 9  ItemGBgroup ID / Parent=ID.                                                                                                                      
+# 10 block_count                                                                                                                                        
+# 11 block_sizes                                                                                                                                        
 # 12 block_starts (relative to chr_start)  
 sub write_BED12{
     my ($trans, $output) = @_;
