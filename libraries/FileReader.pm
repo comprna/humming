@@ -4,7 +4,7 @@ use strict;
 use libraries::Cluster;
 
 sub read_file{
-    my ($file, $type, $verbose, $distance) = @_;
+    my ($file, $type, $verbose, $distance, $deletion_size) = @_;
     if ($type eq "GTF"){
 	return read_GTF($file, $verbose);
     }
@@ -15,7 +15,7 @@ sub read_file{
 	return read_BED12($file, $verbose);
     }
     elsif( $type eq "PAF"){
-	return read_PAF($file, $verbose, $distance);
+	return read_PAF($file, $verbose, $distance, $deletion_size);
     }
 }
 
@@ -180,7 +180,7 @@ sub read_BED12{
 # 12 Mapping quality (0-255; 255 for missing)    
 # 13 SAM-like output
 sub read_PAF{
-    my ($file, $verbose, $distance) = @_;
+    my ($file, $verbose, $distance, $deletion_size) = @_;
     $verbose = 1;
     my $trans;
     my %count;    
@@ -226,7 +226,6 @@ sub read_PAF{
 	    }
 	    # any cigar block that is a Match, Insertion, or a Deletion smaller than $deletion_size
 	    # is considered an exon block
-	    my $deletion_size = 25;
 	    elsif ( $id eq "M" || $id eq "I" || ($id eq "D" && $size < $deletion_size) ){
 		push( @$new_block, [$size, "exon"] );
 		$count++;
