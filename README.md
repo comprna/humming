@@ -93,7 +93,7 @@ or made up from pre-existing gene IDs in the input file (if the option `reuse` i
 ----------------------------
 
 Script to perform conversion between formats generally used to describe transcript annotations and/or mappings to a genome reference.
-Format supported so far are: GTF, GFF, BED12, PAF (under construction).
+Format supported so far are: GTF, GFF, BED12, PAF.
 
 Usage:
 
