@@ -163,6 +163,29 @@ sub compare_transcript_junctions{
     return (scalar(@$junc1), scalar(@$junc2), $overlap);
 }
 
+##############################################################  
+                                                                                            
+sub match_transcript_introns{
+    my ($t1, $t2) = @_;
+    
+    # count the matching junctions                                                                                                            
+    my %junctions;
+    my $overlap = 0;
+    my $introns1 = Transcript::get_sorted_introns($t1);
+    my $introns2 = Transcript::get_sorted_introns($t2);
+    
+    # which intron starts first
+  INT1:
+    foreach my $int1 (@$introns1){
+	my ($chr1, $source1, $feature1, $start1, $end1, $score1, $strand1, $frame1, $t_id1, $g_id1) = @$int1;   
+       INT2:
+	foreach my $int2 (@$introns2){
+	    my ($chr2, $source2, $feature2, $start2, $end2, $score2, $strand2, $frame2, $t_id2, $g_id2) = @$int2;   
+	    
+	}
+    }
+}
+
 
 ###########################################################
 sub compare_transcript_exons{
