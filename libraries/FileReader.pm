@@ -224,9 +224,9 @@ sub read_PAF{
 		push( @$new_block, [$size, "exon"] );
 		$count++;
 	    }
-	    # any cigar block that is a Match, Insertion, or a Deletion smaller than $deletion_siz
+	    # any cigar block that is a Match, Insertion, or a Deletion smaller than $deletion_size
 	    # is considered an exon block
-	    my $deletion_size = 25
+	    my $deletion_size = 25;
 	    elsif ( $id eq "M" || $id eq "I" || ($id eq "D" && $size < $deletion_size) ){
 		push( @$new_block, [$size, "exon"] );
 		$count++;
