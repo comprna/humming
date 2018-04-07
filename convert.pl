@@ -6,9 +6,10 @@ use libraries::FileReader;
 use libraries::FileWriter;
 use Getopt::Long;
 
-my ($file, $format_in, $output, $format_out, $help);
-my $constraint = "exon";
-my $reuse      = "0";
+my ($file, $format_in, $output, $format_out, $help, $distance, $verbose);
+
+# default distance between matches in PAF file to join them into a transcript
+$distance = 100000;
 
 # check options
 my $result = GetOptions(
@@ -16,6 +17,8 @@ my $result = GetOptions(
     'f|format_in=s'  => \$format_in,
     'o|output=s'     => \$output,
     'u|format_out=s' => \$format_out,
+    'd|distance=i'   => \$distance,
+    'v|verbose'      => \$verbose,
     'h|help'         => \$help
     );
 
@@ -42,6 +45,8 @@ sub print_usage{
     print STDERR "-f | --format_in:  Format of the transcript file: GTF, GFF, BED12, PAF\n";
     print STDERR "-o | --output:     Output file name\n";
     print STDERR "-u | --format_out: Format of the transcript file: GTF, GFF, BED12, PAF\n";
+    print STDERR "-d | --distance:   Distance between matches in PAF file to join them into a transcript (default: 100000)\n";
+    print STDERR "-v | --verbose:    Switch on useful prints for debugging\n";
     print STDERR "-h | --help:       Print this help\n";
     print STDERR "\n";
     exit(0);
@@ -49,7 +54,7 @@ sub print_usage{
 
 
 # read input
-my $trans = FileReader::read_file($file, $format_in);
+my $trans = FileReader::read_file($file, $format_in, $verbose, $distance);
 
 # write output
 FileWriter::write_file($trans, $output, $format_out);
